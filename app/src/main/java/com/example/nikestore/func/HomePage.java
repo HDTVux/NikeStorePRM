@@ -1,5 +1,6 @@
 package com.example.nikestore.func;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -10,9 +11,12 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.nikestore.R;
 import com.example.nikestore.adapter.BannerAdapter;
+import com.example.nikestore.adapter.CategoryAdapter;
 import com.example.nikestore.adapter.ProductNewAdapter;
 import com.example.nikestore.model.Banner;
 import com.example.nikestore.model.BannerResponse;
+import com.example.nikestore.model.Category;
+import com.example.nikestore.model.CategoriesResponse;
 import com.example.nikestore.model.NewProductsResponse;
 import com.example.nikestore.model.Product;
 import com.example.nikestore.net.RetrofitClient;
@@ -29,6 +33,10 @@ public class HomePage extends AppCompatActivity {
     // Banner
     private ViewPager2 viewPagerSlider;
 
+    // Categories strip
+    private RecyclerView rvCategories;
+    private CategoryAdapter categoryAdapter;
+
     // New Releases
     private RecyclerView rvNewProducts;
     private ProductNewAdapter newAdapter;
@@ -44,6 +52,20 @@ public class HomePage extends AppCompatActivity {
         viewPagerSlider.setAdapter(new BannerAdapter(new ArrayList<>()));
         viewPagerSlider.setOffscreenPageLimit(1);
 
+        // ----- Categories -----
+        rvCategories = findViewById(R.id.rvCategories);
+        categoryAdapter = new CategoryAdapter();
+        rvCategories.setAdapter(categoryAdapter);
+        rvCategories.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvCategories.setHasFixedSize(true);
+        categoryAdapter.setOnItemClickListener(item -> {
+            // Mở trang list sản phẩm theo category khi click
+            Intent i = new Intent(HomePage.this, CategoryProductsActivity.class);
+            i.putExtra(CategoryProductsActivity.EXTRA_CAT_ID, item.getId());
+            i.putExtra(CategoryProductsActivity.EXTRA_CAT_NAME, item.getName());
+            startActivity(i);
+        });
+
         // ----- New Releases -----
         rvNewProducts = findViewById(R.id.rvNewProducts);
         newAdapter = new ProductNewAdapter();
@@ -53,8 +75,9 @@ public class HomePage extends AppCompatActivity {
         );
         rvNewProducts.setHasFixedSize(true);
 
-        // Gọi API
+        // Gọi API (note: loadCategories trước loadNewProducts nếu bạn muốn category hiện nhanh hơn)
         loadBanners();
+        loadCategories();
         loadNewProducts();
     }
 
@@ -89,6 +112,42 @@ public class HomePage extends AppCompatActivity {
         });
     }
 
+    // ================== CATEGORIES ==================
+    private void loadCategories() {
+        // Note: ApiService must have getCategories() implemented (api.php?action=get_categories)
+        RetrofitClient.api().getCategories().enqueue(new Callback<CategoriesResponse>() {
+            @Override
+            public void onResponse(Call<CategoriesResponse> call, Response<CategoriesResponse> response) {
+                try {
+                    if (response.isSuccessful() && response.body() != null && response.body().success) {
+                        categoryAdapter.submitList(response.body().data);
+                    } else {
+                        // fallback: single Accessory item if API missing or empty
+                        List<Category> fallback = new ArrayList<>();
+                        Category acc = new Category();
+                        acc.setId(3);
+                        acc.setName("Accessories");
+                        fallback.add(acc);
+                        categoryAdapter.submitList(fallback);
+                    }
+                } catch (Throwable t) {
+                    Log.e("CATEGORIES", "onResponse crash-guard: " + t.getMessage(), t);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CategoriesResponse> call, Throwable t) {
+                Log.e("CATEGORIES", "Network error: " + t.getMessage(), t);
+                List<Category> fallback = new ArrayList<>();
+                Category acc = new Category();
+                acc.setId(3);
+                acc.setName("Accessories");
+                fallback.add(acc);
+                categoryAdapter.submitList(fallback);
+            }
+        });
+    }
+
     // ================== NEW RELEASES (4 sản phẩm) ==================
     private void loadNewProducts() {
         RetrofitClient.api().getNewProducts().enqueue(new Callback<NewProductsResponse>() {
@@ -110,7 +169,6 @@ public class HomePage extends AppCompatActivity {
                     Log.e("NEW_PRODUCTS", "crash-guard: " + t.getMessage(), t);
                 }
             }
-
 
             @Override
             public void onFailure(Call<NewProductsResponse> call, Throwable t) {
