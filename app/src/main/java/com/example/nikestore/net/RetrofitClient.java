@@ -9,7 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.util.concurrent.TimeUnit;
 
 public class RetrofitClient {
-    private static final String BASE_URL = "http://192.168.0.101/api/project/";
+    private static final String BASE_URL = "http://192.168.107.42/api/project/";
     private static Retrofit retrofit;
 
     public static Retrofit getInstance() {
@@ -35,7 +35,7 @@ public class RetrofitClient {
     }
     public static String getImageBaseUrl() {
         // Nếu ảnh trên server ở root /uploads/, trả host root
-        return "http://192.168.0.101/"; // <-- chỉnh cho khớp nơi bạn serve uploads/
+        return "http://192.168.107.42/"; // <-- chỉnh cho khớp nơi serve uploads/
     }
 
     public static ApiService api() {

@@ -1,10 +1,13 @@
 package com.example.nikestore.adapter;
 
+import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -22,13 +25,15 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
     private final List<Product> data = new ArrayList<>();
     private final DecimalFormat money = new DecimalFormat("#,##0.##");
 
+    public interface OnItemClickListener { void onItemClick(Product item); }
+    private OnItemClickListener listener;
+    public void setOnItemClickListener(OnItemClickListener l){ this.listener = l; }
+
     public void submit(List<Product> list) {
-        android.util.Log.d("PRODUCT_ADAPTER", "submit list size=" + (list == null ? 0 : list.size()));
         data.clear();
         if (list != null) data.addAll(list);
         notifyDataSetChanged();
     }
-
 
     @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
@@ -36,30 +41,22 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
         return new VH(v);
     }
 
-    @Override
-    public void onBindViewHolder(@NonNull VH h, int position) {
+    @Override public void onBindViewHolder(@NonNull VH h, int position) {
         Product p = data.get(position);
         h.tvName.setText(p.name);
         h.tvPrice.setText("$" + money.format(p.price));
-
-        String raw = p.image_url == null ? "" : p.image_url.trim();
-        android.util.Log.d("PRODUCT_ADAPTER", "raw image_url for product " + p.id + " = '" + raw + "'");
-
-        String finalUrl = raw;
-        if (!finalUrl.isEmpty() && !finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
-            // chuẩn hóa: loại bỏ dấu / đầu nếu có rồi prefix base image host
-            String img = finalUrl.startsWith("/") ? finalUrl.substring(1) : finalUrl;
-            finalUrl = com.example.nikestore.net.RetrofitClient.getImageBaseUrl() + img;
-        }
-
-        android.util.Log.d("PRODUCT_ADAPTER", "using image url = " + finalUrl);
-
         Glide.with(h.itemView.getContext())
-                .load(finalUrl.isEmpty() ? null : finalUrl) // null -> will show placeholder
+                .load(p.image_url == null ? "" : p.image_url.trim())
                 .placeholder(android.R.drawable.ic_menu_gallery)
-                .error(android.R.drawable.ic_menu_report_image)
+                .error(android.R.drawable.ic_delete)
                 .centerCrop()
                 .into(h.img);
+
+        h.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(p);
+            }
+        });
     }
 
 
@@ -75,3 +72,4 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
         }
     }
 }
+

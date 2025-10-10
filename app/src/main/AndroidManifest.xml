@@ -15,6 +15,9 @@
         android:theme="@style/Theme.NikeStore"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".func.ProductDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".func.CategoryProductsActivity"
             android:exported="false" />
         <activity
@@ -23,7 +26,6 @@
         <activity
             android:name=".func.VerifyOtpActivity"
             android:exported="false" />
-
         <activity
             android:name=".func.HomePage"
             android:exported="true">
@@ -41,7 +43,9 @@
             android:exported="false" />
         <activity
             android:name=".func.Login"
-            android:exported="true"></activity>
+            android:exported="true">
+
+        </activity>
         <activity
             android:name=".MainActivity"
             android:exported="true" />

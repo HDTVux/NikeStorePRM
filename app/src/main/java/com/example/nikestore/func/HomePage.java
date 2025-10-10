@@ -69,6 +69,12 @@ public class HomePage extends AppCompatActivity {
         // ----- New Releases -----
         rvNewProducts = findViewById(R.id.rvNewProducts);
         newAdapter = new ProductNewAdapter();
+        newAdapter.setOnItemClickListener(item -> {
+            Intent i = new Intent(this, ProductDetailActivity.class);
+            i.putExtra("product_id", item.id);
+            startActivity(i);
+        });
+
         rvNewProducts.setAdapter(newAdapter);
         rvNewProducts.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)

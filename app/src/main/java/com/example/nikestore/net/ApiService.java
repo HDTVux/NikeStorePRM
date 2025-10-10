@@ -4,6 +4,7 @@ import com.example.nikestore.model.ApiResponse;
 import com.example.nikestore.model.BannerResponse;
 import com.example.nikestore.model.CategoriesResponse;
 import com.example.nikestore.model.NewProductsResponse;
+import com.example.nikestore.model.ProductDetailResponse;
 
 import retrofit2.Call;
 import retrofit2.http.Field;
@@ -13,7 +14,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Query;
 
 public interface ApiService {
-    // login
+    // LOGIN
     @FormUrlEncoded
     @POST("api.php?action=login")
     Call<ApiLoginResponse> login(
@@ -21,7 +22,7 @@ public interface ApiService {
             @Field("password") String password
     );
 
-    // register
+    // REGISTER
     @FormUrlEncoded
     @POST("api.php?action=register")
     Call<ApiLoginResponse> register(
@@ -43,19 +44,19 @@ public interface ApiService {
     @POST("api.php?action=reset_password")
     Call<ApiResponse> resetPassword(@Field("email") String email, @Field("password") String newPassword);
 
-    // ====== BANNERS (fixed action in annotation) ======
+    // BANNERS
     @GET("api.php?action=get_banners")
     Call<BannerResponse> getBanners();
 
-    // ====== NEW PRODUCTS (already fixed) ======
+    // NEW PRODUCTS
     @GET("api.php?action=get_new_products")
     Call<NewProductsResponse> getNewProducts();
 
-    // ====== CATEGORIES (fixed action in annotation) ======
+    // CATEGORIES
     @GET("api.php?action=get_categories")
     Call<CategoriesResponse> getCategories();
 
-    // ====== PRODUCTS BY CATEGORY (fixed action in annotation, pageable) ======
+    // PRODUCTS BY CATEGORY (pageable)
     // call: api.php?action=get_products_by_category&category_id=3&page=1&page_size=50&sort=newest
     @GET("api.php?action=get_products_by_category")
     Call<NewProductsResponse> getProductsByCategory(
@@ -65,9 +66,11 @@ public interface ApiService {
             @Query("sort") String sort
     );
 
-    // Optional convenience overloads (if you prefer)
-    default Call<BannerResponse> getBannersDefault() { return getBanners(); }
-    default Call<CategoriesResponse> getCategoriesDefault() { return getCategories(); }
+    // PRODUCT DETAILS (CHÍNH THỨC: action=get_product_details, param product_id)
+    @GET("api.php?action=get_product_details")
+    Call<ProductDetailResponse> getProductDetails(@Query("product_id") int productId);
+
+    // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {
         return getProductsByCategory(categoryId, 1, 50, "newest");
     }

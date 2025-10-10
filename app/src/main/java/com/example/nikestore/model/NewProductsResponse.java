@@ -1,15 +1,19 @@
 package com.example.nikestore.model;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 public class NewProductsResponse {
     public boolean success;
-    public List<Product> products;
-    public List<Product> data;   // <-- accept "data" from server
 
-    public List<Product> getProductsOrData() {
+    @SerializedName("products")
+    public List<Product> products;
+
+    @SerializedName("data")
+    public List<Product> data;
+
+    public List<Product> getProductList() {
         if (products != null) return products;
-        if (data != null) return data;
-        return null;
+        return data;
     }
 }

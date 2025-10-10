@@ -1,5 +1,6 @@
 package com.example.nikestore.func;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -44,6 +45,16 @@ public class CategoryProductsActivity extends AppCompatActivity {
 
         // INIT ADAPTER + LAYOUTMANAGER BEFORE ANY submit(...) CALL
         adapter = new ProductNewAdapter();
+        // nếu ProductNewAdapter có callback onItem click, gắn vào đây:
+        try {
+            adapter.setOnItemClickListener(item -> {
+                Log.d("PRODUCT_CLICK", "CategoryProducts -> open product id=" + item.id);
+                Intent i = new Intent(CategoryProductsActivity.this, com.example.nikestore.func.ProductDetailActivity.class);
+                i.putExtra("product_id", item.id);
+                startActivity(i);
+            });
+        } catch (Throwable ignore) { /* adapter may not have listener API in your version */ }
+
         rvProducts.setLayoutManager(new GridLayoutManager(this, 2));
         rvProducts.setAdapter(adapter);
 
@@ -82,19 +93,13 @@ public class CategoryProductsActivity extends AppCompatActivity {
                         } catch (Throwable ignore) {}
                     }
 
+                    // === HERE: use getProductList() helper on NewProductsResponse ===
                     List<Product> list = null;
                     if (response.isSuccessful() && response.body() != null && response.body().success) {
-                        // hỗ trợ cả "products" và "data"
-                        list = response.body().products;
-                        if (list == null) {
-                            try {
-                                java.lang.reflect.Field f = response.body().getClass().getDeclaredField("data");
-                                f.setAccessible(true);
-                                Object v = f.get(response.body());
-                                if (v instanceof List) {
-                                    list = (List<Product>) v;
-                                }
-                            } catch (Throwable ignore) {}
+                        try {
+                            list = response.body().getProductList();
+                        } catch (Throwable t) {
+                            Log.w("CAT_PRODUCTS", "getProductList() not present or failed: " + t.getMessage());
                         }
                     }
 

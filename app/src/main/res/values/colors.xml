@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
+    <!-- Màu chủ đạo app -->
+    <color name="primary">#0A84FF</color>
+    <color name="gray">#E0E0E0</color>
+
+    <!-- Thêm các màu khác bạn dùng ở project -->
     <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+
 </resources>

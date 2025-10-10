@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">NikeStore</string>
+    <string name="product_image">Product image</string>
+    <string name="back">Back</string>
 </resources>

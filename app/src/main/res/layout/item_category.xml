@@ -10,9 +10,13 @@
         android:id="@+id/imgCategory"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:scaleType="centerCrop"
+        android:padding="4dp"
+        android:background="@drawable/ic_category_placeholder"
         android:src="@drawable/logo_nike"
+        android:scaleType="centerCrop"
+        android:clipToOutline="true"
         android:contentDescription="Category" />
+
 
     <TextView
         android:id="@+id/tvCategoryName"
