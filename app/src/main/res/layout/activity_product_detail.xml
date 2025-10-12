@@ -25,8 +25,8 @@
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/indicator"
             style="@style/Widget.MaterialComponents.TabLayout"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_width="30dp"
+            android:layout_height="5dp"
             android:layout_gravity="bottom|center"
             android:layout_marginBottom="8dp"
             android:background="@android:color/transparent"
@@ -46,7 +46,7 @@
             android:src="@drawable/ic_arrow_back" />
     </FrameLayout>
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -188,6 +188,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:text="Add to cart"
+                android:backgroundTint="@color/orange"
                 android:layout_marginTop="8dp" />
 
 
@@ -195,5 +196,5 @@
                 android:layout_width="match_parent"
                 android:layout_height="16dp" />
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

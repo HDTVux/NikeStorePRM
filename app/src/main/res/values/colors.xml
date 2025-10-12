@@ -7,5 +7,6 @@
     <!-- Thêm các màu khác bạn dùng ở project -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
+    <color name="orange">#C34A0E</color>
 
 </resources>

@@ -49,9 +49,14 @@ public class ProductDetailActivity extends AppCompatActivity {
     private List<ProductVariant> variants = new ArrayList<>();
     private int selectedVariantId = -1;
     private double activePrice = 0.0;
+
+    // --- Review Section ---
     private RecyclerView rvReviews;
+    private TextView tvReviewsHeader, tvNoReviews;
     private ReviewAdapter reviewAdapter;
-    private TextView tvNoReviews;
+    private List<Review> allReviews = new ArrayList<>();
+    private boolean isShowingAllReviews = false;
+    private static final int INITIAL_REVIEWS_TO_SHOW = 2;
 
 
     @Override
@@ -73,7 +78,9 @@ public class ProductDetailActivity extends AppCompatActivity {
         btnPlus = findViewById(R.id.btnPlus);
         btnAddToCart = findViewById(R.id.btnAddToCart);
         rvReviews = findViewById(R.id.rvReviews);
+        tvReviewsHeader = findViewById(R.id.tvReviewsHeader);
         tvNoReviews = findViewById(R.id.tvNoReviews);
+
         // listeners
         btnBack.setOnClickListener(v -> finish());
         btnMinus.setOnClickListener(v -> {
@@ -89,8 +96,13 @@ public class ProductDetailActivity extends AppCompatActivity {
             updateTotal();
         });
         btnAddToCart.setOnClickListener(v -> {
-            // tạm: show toast — bạn có thể triển khai logic thêm vào giỏ hàng
             Toast.makeText(this, "Add to cart (variantId=" + selectedVariantId + ", qty=" + quantity + ")", Toast.LENGTH_SHORT).show();
+        });
+        tvReviewsHeader.setOnClickListener(v -> {
+            if (!allReviews.isEmpty()) {
+                isShowingAllReviews = !isShowingAllReviews;
+                updateReviewsView();
+            }
         });
 
         // get product id
@@ -100,10 +112,12 @@ public class ProductDetailActivity extends AppCompatActivity {
             finish();
             return;
         }
+
         // init review adapter
         reviewAdapter = new ReviewAdapter();
         rvReviews.setAdapter(reviewAdapter);
         rvReviews.setLayoutManager(new LinearLayoutManager(this));
+        rvReviews.setNestedScrollingEnabled(false);
 
         // load
         loadProductDetail(productId);
@@ -117,31 +131,22 @@ public class ProductDetailActivity extends AppCompatActivity {
                     public void onResponse(Call<ProductDetailResponse> call, Response<ProductDetailResponse> response) {
                         if (response.isSuccessful() && response.body() != null && response.body().success) {
                             ProductDetailResponse body = response.body();
-
-                            // product
                             current = body.product;
                             if (current == null) {
                                 Toast.makeText(ProductDetailActivity.this, "Không tìm thấy sản phẩm", Toast.LENGTH_SHORT).show();
                                 return;
                             }
-                            
                             setupInfoFromProduct(current);
-                            
-                            // images
+
                             images = (current.images != null && !current.images.isEmpty()) ? current.images : new ArrayList<>();
                             if (images.isEmpty() && current.image_url != null && !current.image_url.isEmpty()) {
                                 images.add(current.image_url);
                             }
                             setupImageSlider(images);
-
-                            // variants / sizes
                             variants = current.variants != null ? current.variants : new ArrayList<>();
                             setupSizes();
-
                         } else {
-                            String raw = "";
-                            try { raw = response.errorBody() != null ? response.errorBody().string() : ""; } catch (Exception ignored) {}
-                            Log.e("PRODUCT_DETAIL", "unexpected response, code=" + response.code() + " raw=" + raw);
+                            Log.e("PRODUCT_DETAIL", "unexpected response, code=" + response.code());
                             Toast.makeText(ProductDetailActivity.this, "Không lấy được chi tiết sản phẩm", Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -153,40 +158,64 @@ public class ProductDetailActivity extends AppCompatActivity {
                     }
                 });
     }
+
     private void loadReviews(int productId) {
         RetrofitClient.api().getProductReviews(productId).enqueue(new Callback<ReviewsResponse>() {
             @Override
             public void onResponse(Call<ReviewsResponse> call, Response<ReviewsResponse> response) {
+                allReviews.clear();
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
-                    List<Review> list = response.body().reviews;
-                    if (list == null || list.isEmpty()) {
-                        tvNoReviews.setVisibility(View.VISIBLE);
-                        rvReviews.setVisibility(View.GONE);
-                    } else {
-                        tvNoReviews.setVisibility(View.GONE);
-                        rvReviews.setVisibility(View.VISIBLE);
-                        reviewAdapter.submitList(list);
+                    if (response.body().reviews != null) {
+                        allReviews.addAll(response.body().reviews);
                     }
-                } else {
-                    tvNoReviews.setVisibility(View.VISIBLE);
-                    rvReviews.setVisibility(View.GONE);
                 }
+                // always update view, even on failure or empty list
+                updateReviewsView();
             }
 
             @Override
             public void onFailure(Call<ReviewsResponse> call, Throwable t) {
-                tvNoReviews.setVisibility(View.VISIBLE);
-                rvReviews.setVisibility(View.GONE);
+                allReviews.clear();
+                updateReviewsView();
             }
         });
     }
 
+    private void updateReviewsView() {
+        if (allReviews.isEmpty()) {
+            tvNoReviews.setVisibility(View.VISIBLE);
+            rvReviews.setVisibility(View.GONE);
+            tvReviewsHeader.setText("Reviews");
+            tvReviewsHeader.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+        } else {
+            tvNoReviews.setVisibility(View.GONE);
+            rvReviews.setVisibility(View.VISIBLE);
+
+            if (isShowingAllReviews) {
+                // SỬA LỖI: Gửi một bản sao mới của danh sách đầy đủ
+                reviewAdapter.submitList(new ArrayList<>(allReviews));
+                tvReviewsHeader.setText("Reviews (Hide)");
+                tvReviewsHeader.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_up, 0);
+            } else {
+                int count = Math.min(INITIAL_REVIEWS_TO_SHOW, allReviews.size());
+                List<Review> sublist = new ArrayList<>(allReviews.subList(0, count));
+                reviewAdapter.submitList(sublist);
+
+                if (allReviews.size() > INITIAL_REVIEWS_TO_SHOW) {
+                    tvReviewsHeader.setText("Reviews (Show all " + allReviews.size() + ")");
+                    tvReviewsHeader.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_down, 0);
+                } else {
+                    tvReviewsHeader.setText("Reviews");
+                    tvReviewsHeader.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+                }
+            }
+        }
+    }
 
     private void setupImageSlider(List<String> urls) {
         ImageSliderAdapter adapter = new ImageSliderAdapter(urls);
         vpImages.setAdapter(adapter);
-        // attach indicator (dots)
-        new TabLayoutMediator(indicator, vpImages, (tab, position) -> { /* nothing */ }).attach();
+        new TabLayoutMediator(indicator, vpImages, (tab, position) -> {}).attach();
     }
 
     private void setupInfoFromProduct(Product p) {
@@ -199,11 +228,9 @@ public class ProductDetailActivity extends AppCompatActivity {
     }
 
     private void setupSizes() {
-        // SizeAdapter: giả sử có constructor nhận list<ProductVariant> và callback setOnSizeSelected
         SizeAdapter sizeAdapter = new SizeAdapter(variants);
         sizeAdapter.setOnSizeSelected((variantId, sizeLabel) -> {
             selectedVariantId = variantId;
-            // update price nếu variant có price
             double newPrice = activePrice;
             for (ProductVariant v : variants) {
                 if (v != null && v.id == variantId) {

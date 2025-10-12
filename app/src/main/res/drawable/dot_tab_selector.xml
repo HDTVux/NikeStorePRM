@@ -1,14 +1,32 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Trạng thái khi tab được chọn -->
     <item android:state_selected="true">
-        <shape android:shape="oval">
+        <shape android:shape="rectangle">
             <size android:width="8dp" android:height="8dp"/>
             <solid android:color="@color/black"/>
         </shape>
+        <inset android:insetLeft="4dp" android:insetRight="4dp">
+            <shape android:shape="rectangle">
+                <!-- Gạch ngang dài hơn cho mục được chọn -->
+                <size android:width="16dp" android:height="4dp"/>
+                <solid android:color="@color/black"/>
+                <!-- Bo góc để gạch ngang mềm mại hơn -->
+                <corners android:radius="2dp"/>
+            </shape>
+        </inset>
     </item>
+    <!-- Trạng thái mặc định (không được chọn) -->
     <item>
-        <shape android:shape="oval">
+        <shape android:shape="line">
             <size android:width="6dp" android:height="6dp"/>
             <solid android:color="#80CCCCCC"/>
         </shape>
+        <inset android:insetLeft="4dp" android:insetRight="4dp">
+            <shape android:shape="rectangle">
+                <!-- Gạch ngang ngắn hơn cho các mục khác -->
+                <size android:width="8dp" android:height="4dp"/>
+                <solid android:color="#80CCCCCC"/>
+            </shape>
+        </inset>
     </item>
 </selector>
