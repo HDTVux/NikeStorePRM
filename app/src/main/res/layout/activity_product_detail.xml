@@ -59,7 +59,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:background="@color/black">
 
             <TextView
                 android:id="@+id/tvTitle"
@@ -68,7 +69,7 @@
                 android:text="Product Title"
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:textStyle="bold"
-                android:textColor="@color/black"
+                android:textColor="@color/white"
                 android:paddingBottom="8dp" />
 
             <TextView
@@ -78,7 +79,7 @@
                 android:text="$0.00"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textStyle="bold"
-                android:textColor="@color/black"
+                android:textColor="@color/white"
                 android:paddingBottom="12dp" />
 
 
@@ -88,7 +89,7 @@
                 android:text="Sizes"
                 android:textStyle="bold"
                 android:paddingBottom="8dp"
-                android:textColor="@color/black" />
+                android:textColor="@color/white" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvSizes"
@@ -104,7 +105,7 @@
                 android:layout_height="wrap_content"
                 android:text="Description"
                 android:paddingTop="12dp"
-                android:textColor="@color/black" />
+                android:textColor="@color/white" />
 
 
             <LinearLayout
@@ -148,8 +149,38 @@
                     android:layout_height="wrap_content"
                     android:text="Total: $0.00"
                     android:textStyle="bold"
-                    android:textColor="@color/black" />
+                    android:textColor="@color/white" />
             </LinearLayout>
+
+            <!-- Reviews header -->
+            <TextView
+                android:id="@+id/tvReviewsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Reviews"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginTop="12dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"/>
+
+            <!-- Empty text if no reviews -->
+            <TextView
+                android:id="@+id/tvNoReviews"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No reviews yet"
+                android:visibility="gone"
+                android:padding="12dp"/>
+
+            <!-- Reviews list -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvReviews"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:padding="12dp"/>
+
 
 
             <Button

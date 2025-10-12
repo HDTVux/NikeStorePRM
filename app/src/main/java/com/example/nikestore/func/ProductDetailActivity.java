@@ -2,6 +2,7 @@ package com.example.nikestore.func;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -14,10 +15,13 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.nikestore.R;
 import com.example.nikestore.adapter.ImageSliderAdapter;
+import com.example.nikestore.adapter.ReviewAdapter;
 import com.example.nikestore.adapter.SizeAdapter;
 import com.example.nikestore.model.Product;
 import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ProductVariant;
+import com.example.nikestore.model.Review;
+import com.example.nikestore.model.ReviewsResponse;
 import com.example.nikestore.net.RetrofitClient;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -45,6 +49,10 @@ public class ProductDetailActivity extends AppCompatActivity {
     private List<ProductVariant> variants = new ArrayList<>();
     private int selectedVariantId = -1;
     private double activePrice = 0.0;
+    private RecyclerView rvReviews;
+    private ReviewAdapter reviewAdapter;
+    private TextView tvNoReviews;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +72,8 @@ public class ProductDetailActivity extends AppCompatActivity {
         btnMinus = findViewById(R.id.btnMinus);
         btnPlus = findViewById(R.id.btnPlus);
         btnAddToCart = findViewById(R.id.btnAddToCart);
-
+        rvReviews = findViewById(R.id.rvReviews);
+        tvNoReviews = findViewById(R.id.tvNoReviews);
         // listeners
         btnBack.setOnClickListener(v -> finish());
         btnMinus.setOnClickListener(v -> {
@@ -91,9 +100,14 @@ public class ProductDetailActivity extends AppCompatActivity {
             finish();
             return;
         }
+        // init review adapter
+        reviewAdapter = new ReviewAdapter();
+        rvReviews.setAdapter(reviewAdapter);
+        rvReviews.setLayoutManager(new LinearLayoutManager(this));
 
         // load
         loadProductDetail(productId);
+        loadReviews(productId);
     }
 
     private void loadProductDetail(int productId) {
@@ -139,6 +153,34 @@ public class ProductDetailActivity extends AppCompatActivity {
                     }
                 });
     }
+    private void loadReviews(int productId) {
+        RetrofitClient.api().getProductReviews(productId).enqueue(new Callback<ReviewsResponse>() {
+            @Override
+            public void onResponse(Call<ReviewsResponse> call, Response<ReviewsResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().success) {
+                    List<Review> list = response.body().reviews;
+                    if (list == null || list.isEmpty()) {
+                        tvNoReviews.setVisibility(View.VISIBLE);
+                        rvReviews.setVisibility(View.GONE);
+                    } else {
+                        tvNoReviews.setVisibility(View.GONE);
+                        rvReviews.setVisibility(View.VISIBLE);
+                        reviewAdapter.submitList(list);
+                    }
+                } else {
+                    tvNoReviews.setVisibility(View.VISIBLE);
+                    rvReviews.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ReviewsResponse> call, Throwable t) {
+                tvNoReviews.setVisibility(View.VISIBLE);
+                rvReviews.setVisibility(View.GONE);
+            }
+        });
+    }
+
 
     private void setupImageSlider(List<String> urls) {
         ImageSliderAdapter adapter = new ImageSliderAdapter(urls);

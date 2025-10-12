@@ -5,6 +5,7 @@ import com.example.nikestore.model.BannerResponse;
 import com.example.nikestore.model.CategoriesResponse;
 import com.example.nikestore.model.NewProductsResponse;
 import com.example.nikestore.model.ProductDetailResponse;
+import com.example.nikestore.model.ReviewsResponse;
 
 import retrofit2.Call;
 import retrofit2.http.Field;
@@ -69,6 +70,11 @@ public interface ApiService {
     // PRODUCT DETAILS (CHÍNH THỨC: action=get_product_details, param product_id)
     @GET("api.php?action=get_product_details")
     Call<ProductDetailResponse> getProductDetails(@Query("product_id") int productId);
+
+    // GET PRODUCT REVIEWS (CHÍNH THỨC: action=get_product_reviews, param product_id)
+    @GET("api.php?action=get_product_reviews")
+    Call<ReviewsResponse> getProductReviews(@Query("product_id") int productId);
+
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {
