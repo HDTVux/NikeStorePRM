@@ -40,15 +40,34 @@
                 android:scaleType="fitCenter"
                 android:contentDescription="@string/app_name" />
 
-            <!-- Logo ACG -->
-            <ImageView
-                android:id="@+id/imgLogoACG"
-                android:layout_width="0dp"
-                android:layout_height="80dp"
-                android:layout_weight="1"
-                android:src="@drawable/logo_acg"
-                android:scaleType="fitCenter"
-                android:contentDescription="@string/app_name" />
+            <!-- Thêm vào layout header / toolbar -->
+            <FrameLayout
+                android:id="@+id/flCart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|center_vertical"
+                android:padding="8dp">
+
+                <ImageButton
+                    android:id="@+id/btnCart"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@null"
+                    android:src="@drawable/ic_shopping_cart" />
+
+                <TextView
+                    android:id="@+id/tvCartBadge"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="end|top"
+                    android:gravity="center"
+                    android:text="0"
+                    android:textSize="10sp"
+                    android:visibility="gone"
+                    android:background="@drawable/badge_bg"
+                    android:textColor="@android:color/white"/>
+            </FrameLayout>
+
 
         </LinearLayout>
 
@@ -127,6 +146,7 @@
             android:overScrollMode="never"
             android:nestedScrollingEnabled="false"/>
 
+        <include layout="@layout/include_bottom_nav" />
 
     </LinearLayout>
 </ScrollView>

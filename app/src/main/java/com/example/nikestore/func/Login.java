@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -17,8 +18,15 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.nikestore.R;
+import com.example.nikestore.data.CartManager;
+import com.example.nikestore.model.ApiResponse;
 import com.example.nikestore.net.ApiLoginResponse;
 import com.example.nikestore.net.RetrofitClient;
+import com.example.nikestore.util.SessionManager;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -26,8 +34,6 @@ import retrofit2.Response;
 
 /**
  * Login bằng USERNAME và PASSWORD.
- * - Chỉ parse JSON OBJECT (GsonConverterFactory) => tránh lỗi "Expected BEGIN_OBJECT but was STRING".
- * - Không dùng ScalarsConverterFactory.
  */
 public class Login extends AppCompatActivity {
 
@@ -46,6 +52,11 @@ public class Login extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
+
+        // Ensure CartManager initialized (prevents crash if user opens Login directly)
+        try {
+            CartManager.init(getApplicationContext());
+        } catch (Throwable ignore) {}
 
         // Xử lý padding cho thanh system bar
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.login), (v, insets) -> {
@@ -86,7 +97,6 @@ public class Login extends AppCompatActivity {
         tvForgotPassword.setOnClickListener(v -> {
             Intent i = new Intent(Login.this, ForgotPassword.class);
             startActivity(i);
-            // Không finish() ở đây, để người dùng quay lại login nếu muốn
         });
     }
 
@@ -101,6 +111,7 @@ public class Login extends AppCompatActivity {
 
         setLoading(true);
 
+        // Gọi API login
         RetrofitClient.api().login(username, password).enqueue(new Callback<ApiLoginResponse>() {
             @Override
             public void onResponse(Call<ApiLoginResponse> call, Response<ApiLoginResponse> response) {
@@ -108,16 +119,65 @@ public class Login extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     ApiLoginResponse res = response.body();
                     if (res.success && res.user != null) {
-                        saveUser(res.user.id, res.user.username, res.user.role);
-                        Toast.makeText(Login.this,
-                                "Đăng nhập thành công: " + res.user.username,
-                                Toast.LENGTH_SHORT).show();
+                        // Lấy userId thực từ response
+                        final int userId = res.user.id;
+                        final String usernameResp = res.user.username;
+                        final String roleResp = res.user.role;
 
-                        // Chuyển sang trang chính
-                        Intent intent = new Intent(Login.this, HomePage.class);
-                        intent.putExtra("username", res.user.username);
-                        startActivity(intent);
-                        finish();
+                        // Lưu user local ngay (trước khi merge) — để các hàm khác có thể đọc user
+                        SessionManager.getInstance(getApplicationContext()).saveUser(userId, res.user.username, res.user.role);
+
+
+                        // Lấy guest items (dưới dạng List<Map<String,Object>>) từ CartManager
+                        List<Map<String, Object>> guestItems = null;
+                        try {
+                            guestItems = CartManager.getInstance().getGuestItemsForApi();
+                        } catch (Throwable t) {
+                            Log.w("LOGIN", "Cannot get guest items: " + t.getMessage());
+                        }
+
+                        // Nếu có guest items thì gọi mergeCart, nếu không thì chuyển thẳng Home
+                        if (guestItems != null && !guestItems.isEmpty()) {
+                            Map<String,Object> body = new HashMap<>();
+                            body.put("user_id", userId);
+                            body.put("items", guestItems);
+
+                            Log.d("LOGIN", "Merging guest cart: " + new com.google.gson.Gson().toJson(body));
+
+                            RetrofitClient.api().mergeCart(body).enqueue(new Callback<ApiResponse>() {
+                                @Override
+                                public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                                    if (response.isSuccessful() && response.body() != null && response.body().success) {
+                                        // Merge success -> clear guest local items and optionally reload server cart
+                                        try {
+                                            CartManager.getInstance().clear();
+                                            // if you implemented loadCartFromServer: uncomment
+                                            // CartManager.getInstance().loadCartFromServer(userId);
+                                        } catch (Throwable t) {
+                                            Log.w("MERGE_CART", "clearGuestItems failed: " + t.getMessage());
+                                        }
+                                        // proceed to Home
+                                        gotoHome(usernameResp);
+                                    } else {
+                                        // Merge failed on server side: log and still go home
+                                        String msg = (response.body()!=null) ? response.body().message : ("HTTP " + response.code());
+                                        Log.w("MERGE_CART", "merge failed: " + msg);
+                                        gotoHome(usernameResp);
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(Call<ApiResponse> call, Throwable t) {
+                                    Log.e("MERGE_CART", "network error", t);
+                                    // Even if merge fails due network, proceed to Home (user already logged in)
+                                    gotoHome(usernameResp);
+                                }
+                            });
+                        } else {
+                            // No guest items -> just go home
+                            gotoHome(usernameResp);
+                        }
+
                     } else {
                         Toast.makeText(Login.this, res.message, Toast.LENGTH_SHORT).show();
                     }
@@ -132,6 +192,14 @@ public class Login extends AppCompatActivity {
                 Toast.makeText(Login.this, "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void gotoHome(String username) {
+        Toast.makeText(Login.this, "Đăng nhập thành công: " + username, Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(Login.this, HomePage.class);
+        intent.putExtra("username", username);
+        startActivity(intent);
+        finish();
     }
 
     private void setLoading(boolean loading) {

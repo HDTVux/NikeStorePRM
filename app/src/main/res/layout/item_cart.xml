@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="horizontal" android:padding="8dp">
+
+    <ImageView android:id="@+id/img" android:layout_width="80dp" android:layout_height="80dp" android:scaleType="centerCrop"/>
+    <LinearLayout android:orientation="vertical" android:layout_marginStart="8dp" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content">
+        <TextView android:id="@+id/tvName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Product name" android:textStyle="bold"/>
+        <TextView android:id="@+id/tvVariant" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Size: US 9"/>
+        <TextView android:id="@+id/tvPrice" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="$0.00"/>
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <ImageButton android:id="@+id/btnMinus" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_remove" android:background="@null"/>
+            <TextView android:id="@+id/tvQty" android:layout_width="40dp" android:layout_height="wrap_content" android:gravity="center" android:text="1"/>
+            <ImageButton android:id="@+id/btnPlus" android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/ic_add" android:background="@null"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageButton android:id="@+id/btnRemove" android:layout_width="36dp" android:layout_height="36dp" android:src="@android:drawable/ic_delete" android:background="@null"/>
+</LinearLayout>

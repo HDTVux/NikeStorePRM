@@ -15,6 +15,12 @@
         android:theme="@style/Theme.NikeStore"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".func.BaseActivity"
+            android:exported="false" />
+        <activity
+            android:name=".func.CartActivity"
+            android:exported="false" />
+        <activity
             android:name=".func.ProductDetailActivity"
             android:exported="false" />
         <activity
@@ -29,11 +35,7 @@
         <activity
             android:name=".func.HomePage"
             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <activity
             android:name=".func.ForgotPassword"
@@ -44,7 +46,11 @@
         <activity
             android:name=".func.Login"
             android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".MainActivity"

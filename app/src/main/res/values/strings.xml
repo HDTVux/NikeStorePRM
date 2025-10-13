@@ -2,4 +2,9 @@
     <string name="app_name">NikeStore</string>
     <string name="product_image">Product image</string>
     <string name="back">Back</string>
+    <string name="cart">Cart</string>
+    <string name="home">Home</string>
+    <string name="favourites">Favourites</string>
+    <string name="notifications">Notifications</string>
+    <string name="profile">Profile</string>
 </resources>

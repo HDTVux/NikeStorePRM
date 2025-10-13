@@ -7,7 +7,10 @@ import com.example.nikestore.model.NewProductsResponse;
 import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ReviewsResponse;
 
+import java.util.Map;
+
 import retrofit2.Call;
+import retrofit2.http.Body;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
@@ -74,6 +77,42 @@ public interface ApiService {
     // GET PRODUCT REVIEWS (CHÍNH THỨC: action=get_product_reviews, param product_id)
     @GET("api.php?action=get_product_reviews")
     Call<ReviewsResponse> getProductReviews(@Query("product_id") int productId);
+
+    // add to cart (POST form)
+    @FormUrlEncoded
+    @POST("api.php?action=add_to_cart")
+    Call<com.example.nikestore.model.ApiResponse> addToCart(
+            @Field("user_id") int userId,
+            @Field("product_id") int productId,
+            @Field("variant_id") Integer variantId,
+            @Field("quantity") int quantity
+    );
+
+    // get cart
+    @GET("api.php?action=get_cart")
+    Call<com.example.nikestore.model.CartResponse> getCart(@Query("user_id") int userId);
+
+    // update item
+    @FormUrlEncoded
+    @POST("api.php?action=update_cart_item")
+    Call<com.example.nikestore.model.ApiResponse> updateCartItem(
+            @Field("item_id") int itemId,
+            @Field("quantity") int quantity
+    );
+
+    // remove item
+    @FormUrlEncoded
+    @POST("api.php?action=remove_cart_item")
+    Call<com.example.nikestore.model.ApiResponse> removeCartItem(@Field("item_id") int itemId);
+
+    // clear cart
+    @FormUrlEncoded
+    @POST("api.php?action=clear_cart")
+    Call<com.example.nikestore.model.ApiResponse> clearCart(@Field("user_id") int userId);
+
+    // merge cart (POST JSON)
+    @POST("api.php?action=merge_cart")
+    Call<com.example.nikestore.model.ApiResponse> mergeCart(@Body Map<String, Object> body);
 
 
     // Convenience overloads

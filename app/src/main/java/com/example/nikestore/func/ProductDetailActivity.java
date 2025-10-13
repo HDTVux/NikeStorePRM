@@ -17,6 +17,8 @@ import com.example.nikestore.R;
 import com.example.nikestore.adapter.ImageSliderAdapter;
 import com.example.nikestore.adapter.ReviewAdapter;
 import com.example.nikestore.adapter.SizeAdapter;
+import com.example.nikestore.data.CartManager;
+import com.example.nikestore.model.CartItem;
 import com.example.nikestore.model.Product;
 import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ProductVariant;
@@ -95,9 +97,25 @@ public class ProductDetailActivity extends AppCompatActivity {
             tvQuantity.setText(String.valueOf(quantity));
             updateTotal();
         });
-        btnAddToCart.setOnClickListener(v -> {
-            Toast.makeText(this, "Add to cart (variantId=" + selectedVariantId + ", qty=" + quantity + ")", Toast.LENGTH_SHORT).show();
+        btnAddToCart.setOnClickListener(v->{
+            int uid = new com.example.nikestore.util.SessionManager(this).getUserId();
+            if (uid<=0) { Toast.makeText(this,"Please login",Toast.LENGTH_SHORT).show(); return; }
+            Integer vid = selectedVariantId > 0 ? selectedVariantId : null;
+            RetrofitClient.api().addToCart(uid, current.id, vid, quantity)
+                    .enqueue(new retrofit2.Callback<com.example.nikestore.model.ApiResponse>() {
+                        @Override public void onResponse(Call<com.example.nikestore.model.ApiResponse> c, Response<com.example.nikestore.model.ApiResponse> r) {
+                            if (r.isSuccessful() && r.body()!=null && r.body().success) {
+                                Toast.makeText(ProductDetailActivity.this,"Added to cart",Toast.LENGTH_SHORT).show();
+                                // optionally update badge: broadcast or call method in HomePage via shared session or stored prefs
+                            } else {
+                                Toast.makeText(ProductDetailActivity.this,"Cannot add to cart",Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                        @Override public void onFailure(Call<com.example.nikestore.model.ApiResponse> c, Throwable t) { Toast.makeText(ProductDetailActivity.this,"Network error",Toast.LENGTH_SHORT).show(); }
+                    });
         });
+
+
         tvReviewsHeader.setOnClickListener(v -> {
             if (!allReviews.isEmpty()) {
                 isShowingAllReviews = !isShowingAllReviews;
