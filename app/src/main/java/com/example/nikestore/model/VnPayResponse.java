@@ -1,7 +1,8 @@
 package com.example.nikestore.model;
 
-public class ApiResponse {
+public class VnPayResponse {
     public boolean success;
+    public String payment_url;
     public String message;
-    public Object data;
+    public int order_id;
 }

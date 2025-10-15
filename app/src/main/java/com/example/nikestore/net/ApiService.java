@@ -12,6 +12,7 @@ import java.util.Map;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Field;
+import retrofit2.http.FieldMap;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
@@ -114,9 +115,26 @@ public interface ApiService {
     @POST("api.php?action=merge_cart")
     Call<com.example.nikestore.model.ApiResponse> mergeCart(@Body Map<String, Object> body);
 
+    // in ApiService.java
+    @POST("api.php?action=create_order")
+    Call<com.example.nikestore.model.ApiResponse> createOrder(@Body Map<String,Object> body);
+
+    @POST("api.php?action=create_vnpay_payment")
+    Call<com.example.nikestore.model.VnPayResponse> createVnPayPayment(@Body Map<String,Object> body);
+
+    // get order status (server verification)
+    @GET("api.php?action=get_order_status")
+    Call<com.example.nikestore.model.OrderStatusResponse> getOrderStatus(@Query("order_id") int orderId);
+
+    // trong ApiService.java
+    @FormUrlEncoded
+    @POST("api.php?action=verify_vnpay_return")
+    Call<com.example.nikestore.model.ApiResponse> verifyVnpayReturn(@FieldMap Map<String, String> params);
+
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {
         return getProductsByCategory(categoryId, 1, 50, "newest");
     }
+
 }

@@ -1,6 +1,9 @@
 package com.example.nikestore.model;
 
-public class CartItem {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class CartItem implements Parcelable {
     public int item_id;
     public int product_id;
     public String product_name;
@@ -27,6 +30,39 @@ public class CartItem {
         this.image_url = image_url;
         this.unitPrice = unitPrice;
     }
+
+    protected CartItem(Parcel in) {
+        item_id = in.readInt();
+        product_id = in.readInt();
+        product_name = in.readString();
+        price = in.readDouble();
+        quantity = in.readInt();
+        if (in.readByte() == 0) {
+            subtotal = null;
+        } else {
+            subtotal = in.readDouble();
+        }
+        if (in.readByte() == 0) {
+            variant_id = null;
+        } else {
+            variant_id = in.readInt();
+        }
+        variant_size = in.readString();
+        image_url = in.readString();
+        unitPrice = in.readDouble();
+    }
+
+    public static final Creator<CartItem> CREATOR = new Creator<CartItem>() {
+        @Override
+        public CartItem createFromParcel(Parcel in) {
+            return new CartItem(in);
+        }
+
+        @Override
+        public CartItem[] newArray(int size) {
+            return new CartItem[size];
+        }
+    };
 
     public int getItem_id() {
         return item_id;
@@ -106,5 +142,34 @@ public class CartItem {
 
     public void setUnitPrice(double unitPrice) {
         this.unitPrice = unitPrice;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(item_id);
+        dest.writeInt(product_id);
+        dest.writeString(product_name);
+        dest.writeDouble(price);
+        dest.writeInt(quantity);
+        if (subtotal == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeDouble(subtotal);
+        }
+        if (variant_id == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeInt(variant_id);
+        }
+        dest.writeString(variant_size);
+        dest.writeString(image_url);
+        dest.writeDouble(unitPrice);
     }
 }

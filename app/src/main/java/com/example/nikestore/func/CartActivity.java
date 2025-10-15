@@ -1,12 +1,13 @@
 package com.example.nikestore.func;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -17,6 +18,7 @@ import com.example.nikestore.model.CartItem;
 import com.example.nikestore.model.CartResponse;
 import com.example.nikestore.net.RetrofitClient;
 import com.example.nikestore.util.SessionManager;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +28,14 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CartActivity extends AppCompatActivity {
+    private static final int CHECKOUT_REQUEST_CODE = 101;
     private androidx.recyclerview.widget.RecyclerView rv;
     private CartAdapter adapter;
     private TextView tvTotal;
     private Button btnCheckout;
     private SessionManager session;
+    private List<CartItem> cartItems;
+
     @Override
     protected void onCreate(Bundle s) {
         super.onCreate(s);
@@ -39,6 +44,7 @@ public class CartActivity extends AppCompatActivity {
         tvTotal = findViewById(R.id.tvCartTotal);
         btnCheckout = findViewById(R.id.btnCheckout);
         session = new SessionManager(this);
+        cartItems = new ArrayList<>();
 
         adapter = new com.example.nikestore.adapter.CartAdapter();
         adapter.setListener(new CartAdapter.Listener() {
@@ -62,9 +68,29 @@ public class CartActivity extends AppCompatActivity {
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(adapter);
 
-        btnCheckout.setOnClickListener(v-> Toast.makeText(this,"Implement checkout later",Toast.LENGTH_SHORT).show());
+        btnCheckout.setOnClickListener(v-> {
+            if (cartItems.isEmpty()) {
+                Toast.makeText(this, "Giỏ hàng trống", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Intent intent = new Intent(CartActivity.this, CheckoutActivity.class);
+            intent.putParcelableArrayListExtra("cart_items", new ArrayList<>(cartItems));
+            startActivityForResult(intent, CHECKOUT_REQUEST_CODE);
+        });
+    }
 
-        loadCart();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadCart(); // Luôn tải lại giỏ hàng khi quay lại màn hình này
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == CHECKOUT_REQUEST_CODE && resultCode == RESULT_OK) {
+            // Thanh toán thành công, loadCart() sẽ được gọi trong onResume()
+        }
     }
 
     private void loadCart() {
@@ -73,12 +99,13 @@ public class CartActivity extends AppCompatActivity {
         RetrofitClient.api().getCart(uid).enqueue(new Callback<CartResponse>() {
             @Override public void onResponse(Call<CartResponse> call, Response<CartResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
-                    List<CartItem> list = response.body().items;
-                    if (list == null) list = new ArrayList<>();
-                    adapter.submit(list);
-                    tvTotal.setText("$" + String.format("%.2f", response.body().total));
+                    cartItems = response.body().items;
+                    if (cartItems == null) cartItems = new ArrayList<>();
+                    adapter.submit(cartItems);
+                    tvTotal.setText("$" + String.format(java.util.Locale.US, "%.2f", response.body().total));
                 } else {
-                    adapter.submit(new ArrayList<>());
+                    cartItems = new ArrayList<>();
+                    adapter.submit(cartItems);
                     tvTotal.setText("$0.00");
                 }
             }

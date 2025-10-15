@@ -114,7 +114,7 @@
             android:layout_height="64dp"
             android:layout_gravity="center"
             android:background="@drawable/fab_circle_bg"
-            android:src="@drawable/ic_shopping_bag"
+            android:src="@drawable/ic_shopping_cart"
             android:contentDescription="@string/cart"
             android:scaleType="centerInside" />
 
