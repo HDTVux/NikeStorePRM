@@ -1,9 +1,10 @@
 package com.example.nikestore.func;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.*;
@@ -14,11 +15,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.nikestore.R;
 import com.example.nikestore.adapter.CartAdapter;
+import com.example.nikestore.model.ApiResponse;
+import com.example.nikestore.model.OrderStatusResponse;
+import com.example.nikestore.model.VnPayResponse;
 import com.example.nikestore.model.CartItem;
 import com.example.nikestore.data.CartManager;
-import com.example.nikestore.model.ApiResponse;
-import com.example.nikestore.model.VnPayResponse;
-import com.example.nikestore.model.OrderStatusResponse;
 import com.example.nikestore.net.RetrofitClient;
 import com.example.nikestore.util.SessionManager;
 import retrofit2.Call;
@@ -27,22 +28,20 @@ import retrofit2.Response;
 import java.util.*;
 
 public class CheckoutActivity extends AppCompatActivity {
-    private static final String PREFS = "nikestore_prefs";
-    private static final String KEY_LAST_ORDER = "last_order_id";
-
     private RecyclerView rvCart;
     private TextView tvSubtotal, tvShipping, tvTotal;
     private RadioButton rbCod, rbVnpay;
     private EditText edtAddress;
     private Button btnPay;
-    private CartAdapter cartAdapter;
+    private com.example.nikestore.adapter.CartAdapter cartAdapter;
     private List<CartItem> cartItems;
 
     private double subtotal = 0.0;
     private double shippingFee = 0.0;
     private double total = 0.0;
 
-    private int lastOrderId = 0; // lưu order đang chờ xác nhận
+    // hiện tại đang xử lý VNPay cho orderId này
+    private Integer currentVnPayOrderId = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,7 +57,7 @@ public class CheckoutActivity extends AppCompatActivity {
         edtAddress = findViewById(R.id.edtAddress);
         btnPay = findViewById(R.id.btnPay);
 
-        cartAdapter = new CartAdapter();
+        cartAdapter = new com.example.nikestore.adapter.CartAdapter();
         rvCart.setAdapter(cartAdapter);
         rvCart.setLayoutManager(new LinearLayoutManager(this));
 
@@ -73,62 +72,97 @@ public class CheckoutActivity extends AppCompatActivity {
         edtAddress.setVisibility(View.VISIBLE);
 
         btnPay.setOnClickListener(v -> onPayClicked());
-
-        // load last order id from prefs (in case app restarted or returned)
-        SharedPreferences sp = getSharedPreferences(PREFS, MODE_PRIVATE);
-        lastOrderId = sp.getInt(KEY_LAST_ORDER, 0);
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        setIntent(intent); // important: update intent for onResume if needed
-        handleDeepLinkIntent(intent);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // If we have a pending order id (from create payment), poll its status
-        if (lastOrderId > 0) {
-            pollOrderStatusWithTimeout(lastOrderId);
-        }
-    }
-
-    private void handleDeepLinkIntent(Intent intent) {
         Uri data = intent.getData();
         if (data != null && "app".equals(data.getScheme()) && "vnpay-return".equals(data.getHost())) {
-            // debug
+            // debug logs (optional)
             android.util.Log.d("VNPAY", "DeepLink URI: " + data.toString());
-            String status = data.getQueryParameter("vnp_ResponseCode");
-            String txnRef = data.getQueryParameter("vnp_TxnRef");
-            // if vnp_TxnRef exists, use it to parse order id
-            if (!TextUtils.isEmpty(txnRef)) {
-                try {
-                    int orderId = Integer.parseInt(txnRef.split("_")[0]);
-                    lastOrderId = orderId;
-                    // save to prefs so onResume can poll if needed
-                    getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(KEY_LAST_ORDER, orderId).apply();
-                } catch (Exception e) { /* ignore */ }
-            }
 
-            if ("00".equals(status)) {
-                // we still should verify with server but let's optimistic show success and clear cart
-                Toast.makeText(this, "Thanh toán VNPay thành công", Toast.LENGTH_SHORT).show();
-                CartManager.getInstance().clear();
-                // clear last order from prefs
-                getSharedPreferences(PREFS, MODE_PRIVATE).edit().remove(KEY_LAST_ORDER).apply();
-                setResult(RESULT_OK);
-                finish();
-            } else {
-                // start polling immediately to confirm
-                if (lastOrderId > 0) {
-                    pollOrderStatusWithTimeout(lastOrderId);
-                } else {
-                    Toast.makeText(this, "Thanh toán VNPay: không có thông tin", Toast.LENGTH_SHORT).show();
+            // Try to get order id from vnp_TxnRef; fallback to currentVnPayOrderId
+            String txnRef = data.getQueryParameter("vnp_TxnRef");
+            int orderId = -1;
+            if (txnRef != null) {
+                try {
+                    orderId = Integer.parseInt(txnRef.split("_")[0]);
+                } catch (Exception ex) {
+                    orderId = -1;
                 }
             }
+            if (orderId <= 0 && currentVnPayOrderId != null) {
+                orderId = currentVnPayOrderId;
+            }
+            if (orderId <= 0) {
+                Toast.makeText(this, "Không có thông tin thanh toán", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Start/continue polling for this concrete order id
+            checkOrderWithPolling(orderId);
         }
+    }
+
+    /**
+     * Poll server for order/payment status until confirmed or max attempts reached.
+     * This method is idempotent and safe to call multiple times.
+     */
+    private void checkOrderWithPolling(int orderId) {
+        final int MAX_ATTEMPTS = 8;        // số lần thử
+        final int INTERVAL_MS = 3000;      // mỗi lần 3s
+        final Handler handler = new Handler(Looper.getMainLooper());
+        final int[] attempts = {0};
+
+        final Runnable[] runnableHolder = new Runnable[1];
+
+        runnableHolder[0] = new Runnable() {
+            @Override
+            public void run() {
+                attempts[0]++;
+                android.util.Log.d("VNPAY", "Polling order status attempt " + attempts[0] + " for order " + orderId);
+                RetrofitClient.api().getOrderStatus(orderId).enqueue(new Callback<OrderStatusResponse>() {
+                    @Override
+                    public void onResponse(Call<OrderStatusResponse> call, Response<OrderStatusResponse> response) {
+                        if (response.isSuccessful() && response.body() != null && response.body().success) {
+                            String status = response.body().order != null ? response.body().order.status : null;
+                            String payStatus = response.body().payment != null ? response.body().payment.status : null;
+                            android.util.Log.d("VNPAY", "CheckOrder: order=" + status + " pay=" + payStatus);
+                            if ("paid".equalsIgnoreCase(status) || "success".equalsIgnoreCase(payStatus)) {
+                                Toast.makeText(CheckoutActivity.this, "Thanh toán VNPay thành công", Toast.LENGTH_SHORT).show();
+                                // Clear server-side cart has been done by server in return/ipn
+                                CartManager.getInstance().clear();
+                                setResult(RESULT_OK);
+                                finish();
+                                return;
+                            }
+                        } else {
+                            android.util.Log.w("VNPAY", "getOrderStatus not successful or invalid body");
+                        }
+
+                        if (attempts[0] < MAX_ATTEMPTS) {
+                            handler.postDelayed(runnableHolder[0], INTERVAL_MS);
+                        } else {
+                            Toast.makeText(CheckoutActivity.this, "Thanh toán chưa được xác nhận. Vui lòng kiểm tra lịch sử đơn.", Toast.LENGTH_LONG).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<OrderStatusResponse> call, Throwable t) {
+                        android.util.Log.e("VNPAY", "checkOrder error", t);
+                        if (attempts[0] < MAX_ATTEMPTS) {
+                            handler.postDelayed(runnableHolder[0], INTERVAL_MS);
+                        } else {
+                            Toast.makeText(CheckoutActivity.this, "Không thể kiểm tra trạng thái đơn. Lỗi mạng", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+            }
+        };
+
+        // start immediately
+        handler.post(runnableHolder[0]);
     }
 
     private void recalcTotals(List<CartItem> items) {
@@ -153,7 +187,7 @@ public class CheckoutActivity extends AppCompatActivity {
         SessionManager sm = SessionManager.getInstance(getApplicationContext());
         if (!sm.isLoggedIn()) {
             Toast.makeText(this, "Vui lòng đăng nhập", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, Login.class));
+            startActivity(new Intent(this, com.example.nikestore.func.Login.class));
             return;
         }
 
@@ -193,7 +227,7 @@ public class CheckoutActivity extends AppCompatActivity {
         body.put("address", address);
 
         if (isCod) {
-            body.put("payment_method", "cash"); // align with payments enum
+            body.put("payment_method", "cash"); // align with server enum
             RetrofitClient.api().createOrder(body).enqueue(new Callback<ApiResponse>() {
                 @Override
                 public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
@@ -222,10 +256,11 @@ public class CheckoutActivity extends AppCompatActivity {
                 public void onResponse(Call<VnPayResponse> call, Response<VnPayResponse> response) {
                     if (response.isSuccessful() && response.body() != null && response.body().success) {
                         String url = response.body().payment_url;
-                        int orderId = response.body().order_id;
-                        // save last order id to prefs so we can poll onResume if app is not opened by deep link
-                        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(KEY_LAST_ORDER, orderId).apply();
-                        lastOrderId = orderId;
+                        int returnedOrderId = response.body().order_id;
+                        currentVnPayOrderId = returnedOrderId;
+
+                        // Start polling immediately for returnedOrderId (improves UX and handles race)
+                        checkOrderWithPolling(returnedOrderId);
 
                         if (!TextUtils.isEmpty(url)) {
                             CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
@@ -247,58 +282,5 @@ public class CheckoutActivity extends AppCompatActivity {
                 }
             });
         }
-    }
-
-    // Poll with reasonable attempts (like your previous implementation)
-    private void pollOrderStatusWithTimeout(int orderId) {
-        final int MAX_ATTEMPTS = 6;
-        final int INTERVAL_MS = 3000;
-        final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
-        final int[] attempts = {0};
-        final Runnable[] runnableHolder = new Runnable[1];
-
-        runnableHolder[0] = new Runnable() {
-            @Override
-            public void run() {
-                attempts[0]++;
-                RetrofitClient.api().getOrderStatus(orderId).enqueue(new Callback<OrderStatusResponse>() {
-                    @Override
-                    public void onResponse(Call<OrderStatusResponse> call, Response<OrderStatusResponse> response) {
-                        if (response.isSuccessful() && response.body() != null && response.body().success) {
-                            String status = response.body().order != null ? response.body().order.status : null;
-                            String payStatus = response.body().payment != null ? response.body().payment.status : null;
-                            android.util.Log.d("VNPAY", "CheckOrder: order=" + status + " pay=" + payStatus);
-                            if ("paid".equalsIgnoreCase(status) || "success".equalsIgnoreCase(payStatus)) {
-                                Toast.makeText(CheckoutActivity.this, "Thanh toán VNPay thành công", Toast.LENGTH_SHORT).show();
-                                CartManager.getInstance().clear();
-                                // clear lastOrder
-                                getSharedPreferences(PREFS, MODE_PRIVATE).edit().remove(KEY_LAST_ORDER).apply();
-                                lastOrderId = 0;
-                                setResult(RESULT_OK);
-                                finish();
-                                return;
-                            }
-                        }
-                        if (attempts[0] < MAX_ATTEMPTS) {
-                            handler.postDelayed(runnableHolder[0], INTERVAL_MS);
-                        } else {
-                            Toast.makeText(CheckoutActivity.this, "Thanh toán chưa được xác nhận. Vui lòng kiểm tra lịch sử đơn hoặc thử lại sau.", Toast.LENGTH_LONG).show();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<OrderStatusResponse> call, Throwable t) {
-                        android.util.Log.e("VNPAY", "checkOrder error", t);
-                        if (attempts[0] < MAX_ATTEMPTS) {
-                            handler.postDelayed(runnableHolder[0], INTERVAL_MS);
-                        } else {
-                            Toast.makeText(CheckoutActivity.this, "Không thể kiểm tra trạng thái đơn. Lỗi mạng", Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });
-            }
-        };
-
-        handler.post(runnableHolder[0]);
     }
 }

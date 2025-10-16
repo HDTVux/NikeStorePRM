@@ -34,6 +34,7 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import android.widget.EditText;
 
 /**
  * Home page activity (banner, categories, new releases) with cart badge and bottom nav.
@@ -66,7 +67,7 @@ public class HomePage extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_page);
-
+        EditText edtSearch = findViewById(R.id.edtSearch);
         // If BaseActivity provides bottom nav integration
         try { setupBottomNav(); } catch (Throwable ignore) {}
 
@@ -85,6 +86,14 @@ public class HomePage extends BaseActivity {
         if (btnCart != null) {
             btnCart.setOnClickListener(v -> {
                 startActivity(new Intent(HomePage.this, com.example.nikestore.func.CartActivity.class));
+            });
+        }
+        if (edtSearch != null) {
+            // disable direct typing here to force a dedicated SearchActivity (UX like mockup)
+            edtSearch.setFocusable(false);
+            edtSearch.setOnClickListener(v -> {
+                Intent i = new Intent(HomePage.this, com.example.nikestore.func.SearchActivity.class);
+                startActivity(i);
             });
         }
 

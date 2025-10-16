@@ -15,14 +15,20 @@
         android:theme="@style/Theme.NikeStore"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".func.SearchActivity"
+            android:exported="false" />
+        <activity
             android:name=".func.CheckoutActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <!-- scheme và host giống server redirect -->
-                <data android:scheme="app" android:host="vnpay-return" />
+                <data
+                    android:host="vnpay-return"
+                    android:scheme="app" />
             </intent-filter>
         </activity>
         <activity

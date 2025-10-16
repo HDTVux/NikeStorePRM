@@ -131,10 +131,24 @@ public interface ApiService {
     @POST("api.php?action=verify_vnpay_return")
     Call<com.example.nikestore.model.ApiResponse> verifyVnpayReturn(@FieldMap Map<String, String> params);
 
+    // SEARCH PRODUCTS
+    @GET("api.php?action=search_products")
+    Call<NewProductsResponse> searchProducts(
+            @Query("q") String query,
+            @Query("page") int page,
+            @Query("page_size") int pageSize
+    );
+
+
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {
         return getProductsByCategory(categoryId, 1, 50, "newest");
     }
+
+    default Call<NewProductsResponse> searchProducts(String q) {
+        return searchProducts(q, 1, 50);
+    }
+
 
 }
