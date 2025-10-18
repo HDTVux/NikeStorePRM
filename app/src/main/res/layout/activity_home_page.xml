@@ -2,21 +2,17 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/homePageContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
     tools:context=".func.HomePage">
 
-    <!-- Nội dung chính có thể cuộn -->
+    <!-- Scrollable container for the main content -->
     <ScrollView
-        android:id="@+id/homePage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/includeBottomNav"
-        android:fillViewport="true"
-        android:clipToPadding="false"
-        android:paddingBottom="70dp">
+        android:layout_above="@+id/bottom_nav_container"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -28,31 +24,28 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:gravity="center"
+                android:orientation="horizontal"
                 android:padding="8dp">
 
-                <!-- Logo Jordan -->
                 <ImageView
                     android:id="@+id/imgLogoJordan"
                     android:layout_width="0dp"
                     android:layout_height="80dp"
                     android:layout_weight="1"
-                    android:src="@drawable/logo_jordan"
+                    android:contentDescription="@string/app_name"
                     android:scaleType="fitCenter"
-                    android:contentDescription="@string/app_name" />
+                    android:src="@drawable/logo_jordan" />
 
-                <!-- Logo Nike -->
                 <ImageView
                     android:id="@+id/imgLogoNike"
                     android:layout_width="0dp"
                     android:layout_height="80dp"
                     android:layout_weight="1"
-                    android:src="@drawable/logo_nike"
+                    android:contentDescription="@string/app_name"
                     android:scaleType="fitCenter"
-                    android:contentDescription="@string/app_name" />
+                    android:src="@drawable/logo_nike" />
 
-                <!-- Nút giỏ hàng -->
                 <FrameLayout
                     android:id="@+id/flCart"
                     android:layout_width="wrap_content"
@@ -65,106 +58,108 @@
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:background="@null"
-                        android:src="@drawable/ic_shopping_cart"
-                        android:contentDescription="Cart" />
+                        android:contentDescription="Cart"
+                        android:src="@drawable/ic_shopping_cart" />
 
                     <TextView
                         android:id="@+id/tvCartBadge"
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="end|top"
+                        android:background="@drawable/badge_bg"
                         android:gravity="center"
                         android:text="0"
+                        android:textColor="@android:color/white"
                         android:textSize="10sp"
-                        android:visibility="gone"
-                        android:background="@drawable/badge_bg"
-                        android:textColor="@android:color/white"/>
+                        android:visibility="gone" />
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Thanh tìm kiếm -->
+            <!-- Search Bar -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:orientation="horizontal"
                 android:background="@drawable/search_background"
+                android:orientation="horizontal"
                 android:padding="8dp">
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@android:drawable/ic_menu_search"
                     android:layout_gravity="center_vertical"
+                    android:src="@android:drawable/ic_menu_search"
                     app:tint="@color/white" />
 
                 <EditText
                     android:id="@+id/edtSearch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Search products..."
                     android:background="@android:color/transparent"
+                    android:hint="Search products..."
+                    android:inputType="text"
                     android:padding="8dp"
-                    android:textColor="@color/white"
-                    android:inputType="text" />
+                    android:textColor="@color/white" />
             </LinearLayout>
 
-            <!-- Slider ảnh nổi bật -->
+            <!-- Banner Slider -->
             <androidx.viewpager2.widget.ViewPager2
                 android:id="@+id/viewPagerSlider"
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"/>
+                android:layout_marginBottom="16dp" />
 
-            <!-- Category -->
+            <!-- Categories -->
             <TextView
-                android:id="@+id/tvCategoryTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:text="Category"
                 android:textColor="@color/white"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginTop="12dp"/>
+                android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvCategories"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:overScrollMode="never"
+                android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
                 android:orientation="horizontal"
-                android:clipToPadding="false"/>
+                android:overScrollMode="never" />
 
             <!-- New Releases -->
             <TextView
-                android:id="@+id/tvNewRelease"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:text="New Releases"
                 android:textColor="@color/white"
-                android:textStyle="bold"
                 android:textSize="18sp"
-                android:layout_marginTop="4dp" />
+                android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvNewProducts"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:overScrollMode="never"
-                android:nestedScrollingEnabled="false"/>
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
         </LinearLayout>
     </ScrollView>
 
-    <!-- Thanh bottom nav cố định -->
-    <include
-        android:id="@+id/includeBottomNav"
-        layout="@layout/include_bottom_nav"
+    <!-- Container for the Bottom Navigation Bar -->
+    <FrameLayout
+        android:id="@+id/bottom_nav_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true" />
+        android:layout_alignParentBottom="true">
+
+        <!-- Include the shared bottom navigation bar -->
+        <include layout="@layout/include_bottom_nav" />
+
+    </FrameLayout>
 
 </RelativeLayout>

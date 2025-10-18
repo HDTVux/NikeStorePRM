@@ -1,14 +1,25 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- placeholder content -->
+    <!-- Container for fragment content -->
     <FrameLayout
         android:id="@+id/contentContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottom_nav_container" />
 
-    <!-- include bottom nav -->
-    <include layout="@layout/include_bottom_nav" />
+    <!-- Container for the bottom nav bar to ensure it's at the bottom -->
+    <FrameLayout
+        android:id="@+id/bottom_nav_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true">
 
-</FrameLayout>
+        <!-- Include the bottom navigation view -->
+        <include layout="@layout/include_bottom_nav" />
+
+    </FrameLayout>
+
+</RelativeLayout>

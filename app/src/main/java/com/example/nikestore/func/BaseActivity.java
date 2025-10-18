@@ -1,68 +1,83 @@
 package com.example.nikestore.func;
 
 import android.content.Intent;
-import android.view.View;
-import android.widget.ImageButton;
-import android.widget.TextView;
-
+import android.os.Bundle;
+import android.view.MenuItem;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.example.nikestore.R;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 
-public class BaseActivity extends AppCompatActivity {
+public abstract class BaseActivity extends AppCompatActivity {
 
-    protected void setupBottomNav() {
-        View container = findViewById(R.id.bottomNavContainer);
-        if (container == null) return;
+    protected BottomNavigationView bottomNavView;
 
-        ImageButton btnHome = container.findViewById(R.id.btnHome);
-        ImageButton btnFav = container.findViewById(R.id.btnFavourite);
-        ImageButton btnNotif = container.findViewById(R.id.btnNotifications);
-        ImageButton btnProfile = container.findViewById(R.id.btnProfile);
-        ImageButton fabCart = container.findViewById(R.id.fabCart);
-        TextView tvBadge = container.findViewById(R.id.tvCartBadge);
+    protected abstract int getNavigationMenuItemId();
 
-        btnHome.setOnClickListener(v -> {
-            // ví dụ: nếu đang không phải Home, mở home:
-            Intent i = new Intent(this, HomePage.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-            startActivity(i);
-            overridePendingTransition(0,0);
-        });
-
-//        btnFav.setOnClickListener(v -> {
-//            // mở wishlist activity
-//            Intent i = new Intent(this, WishlistActivity.class);
-//            startActivity(i);
-//        });
-//
-//        btnNotif.setOnClickListener(v -> {
-//            // open notifications
-//            Intent i = new Intent(this, NotificationsActivity.class);
-//            startActivity(i);
-//        });
-//
-//        btnProfile.setOnClickListener(v -> {
-//            Intent i = new Intent(this, ProfileActivity.class);
-//            startActivity(i);
-//        });
-
-        fabCart.setOnClickListener(v -> {
-            Intent i = new Intent(this, CartActivity.class);
-            startActivity(i);
-        });
-
-        // demo: cập nhật badge từ cart count method (khởi tạo 0)
-        updateCartBadge(tvBadge, 0);
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
     }
 
-    protected void updateCartBadge(TextView tvBadge, int count) {
-        if (tvBadge == null) return;
+    @Override
+    protected void onStart() {
+        super.onStart();
+        updateBottomNavState();
+    }
+
+    protected void setupBottomNav() {
+        bottomNavView = findViewById(R.id.bottom_nav_view);
+        if (bottomNavView == null) {
+            return;
+        }
+
+        bottomNavView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            
+            if (itemId == getNavigationMenuItemId()) {
+                return true;
+            }
+
+            Intent intent = null;
+            if (itemId == R.id.nav_home) {
+                // *** THE FIX: Navigate to HomePage, not MainActivity ***
+                intent = new Intent(this, HomePage.class); 
+            } else if (itemId == R.id.nav_cart) {
+                intent = new Intent(this, CartActivity.class);
+            } else if (itemId == R.id.nav_orders) {
+                 Toast.makeText(this, "Orders coming soon!", Toast.LENGTH_SHORT).show();
+            } else if (itemId == R.id.nav_account) {
+                 Toast.makeText(this, "Account coming soon!", Toast.LENGTH_SHORT).show();
+            }
+
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            }
+
+            return true;
+        });
+    }
+
+    private void updateBottomNavState() {
+        if (bottomNavView == null) {
+            bottomNavView = findViewById(R.id.bottom_nav_view);
+        }
+        if (bottomNavView != null) {
+            bottomNavView.setSelectedItemId(getNavigationMenuItemId());
+        }
+    }
+
+    protected void updateCartBadge(int count) {
+        if (bottomNavView == null) return;
         if (count <= 0) {
-            tvBadge.setVisibility(View.GONE);
+            bottomNavView.removeBadge(R.id.nav_cart);
         } else {
-            tvBadge.setVisibility(View.VISIBLE);
-            tvBadge.setText(String.valueOf(Math.min(count, 99)));
+            bottomNavView.getOrCreateBadge(R.id.nav_cart).setNumber(count);
         }
     }
 }
