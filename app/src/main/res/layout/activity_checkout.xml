@@ -74,7 +74,16 @@
         android:layout_height="wrap_content"
         android:hint="Shipping address"
         android:paddingTop="8dp"
-        android:visibility="gone" />
+        android:visibility="visible" />
+        
+    <!-- *** CHỈ THÊM DÒNG NÀY *** -->
+    <EditText
+        android:id="@+id/edtPhoneNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Phone number"
+        android:inputType="phone"
+        android:paddingTop="8dp" />
 
     <Button
         android:id="@+id/btnPay"

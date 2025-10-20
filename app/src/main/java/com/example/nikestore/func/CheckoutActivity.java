@@ -22,10 +22,11 @@ import com.example.nikestore.model.CartItem;
 import com.example.nikestore.data.CartManager;
 import com.example.nikestore.net.RetrofitClient;
 import com.example.nikestore.util.SessionManager;
+import java.util.*;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import java.util.*;
 
 public class CheckoutActivity extends AppCompatActivity {
     private RecyclerView rvCart;
@@ -36,11 +37,13 @@ public class CheckoutActivity extends AppCompatActivity {
     private com.example.nikestore.adapter.CartAdapter cartAdapter;
     private List<CartItem> cartItems;
 
+    // *** THÊM BIẾN MỚI ***
+    private EditText edtPhoneNumber;
+
     private double subtotal = 0.0;
     private double shippingFee = 0.0;
     private double total = 0.0;
 
-    // hiện tại đang xử lý VNPay cho orderId này
     private Integer currentVnPayOrderId = null;
 
     @Override
@@ -57,6 +60,9 @@ public class CheckoutActivity extends AppCompatActivity {
         edtAddress = findViewById(R.id.edtAddress);
         btnPay = findViewById(R.id.btnPay);
 
+        // *** THÊM THAM CHIẾU MỚI ***
+        edtPhoneNumber = findViewById(R.id.edtPhoneNumber);
+
         cartAdapter = new com.example.nikestore.adapter.CartAdapter();
         rvCart.setAdapter(cartAdapter);
         rvCart.setLayoutManager(new LinearLayoutManager(this));
@@ -68,21 +74,18 @@ public class CheckoutActivity extends AppCompatActivity {
         cartAdapter.submit(cartItems);
         recalcTotals(cartItems);
 
-        // ensure address visible
         edtAddress.setVisibility(View.VISIBLE);
 
         btnPay.setOnClickListener(v -> onPayClicked());
     }
 
+    // --- CÁC PHƯƠNG THỨC onNewIntent, checkOrderWithPolling, recalcTotals GIỮ NGUYÊN ---
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         Uri data = intent.getData();
         if (data != null && "app".equals(data.getScheme()) && "vnpay-return".equals(data.getHost())) {
-            // debug logs (optional)
             android.util.Log.d("VNPAY", "DeepLink URI: " + data.toString());
-
-            // Try to get order id from vnp_TxnRef; fallback to currentVnPayOrderId
             String txnRef = data.getQueryParameter("vnp_TxnRef");
             int orderId = -1;
             if (txnRef != null) {
@@ -99,24 +102,16 @@ public class CheckoutActivity extends AppCompatActivity {
                 Toast.makeText(this, "Không có thông tin thanh toán", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            // Start/continue polling for this concrete order id
             checkOrderWithPolling(orderId);
         }
     }
-
-    /**
-     * Poll server for order/payment status until confirmed or max attempts reached.
-     * This method is idempotent and safe to call multiple times.
-     */
+    
     private void checkOrderWithPolling(int orderId) {
-        final int MAX_ATTEMPTS = 8;        // số lần thử
-        final int INTERVAL_MS = 3000;      // mỗi lần 3s
+        final int MAX_ATTEMPTS = 8;
+        final int INTERVAL_MS = 3000;
         final Handler handler = new Handler(Looper.getMainLooper());
         final int[] attempts = {0};
-
         final Runnable[] runnableHolder = new Runnable[1];
-
         runnableHolder[0] = new Runnable() {
             @Override
             public void run() {
@@ -131,7 +126,6 @@ public class CheckoutActivity extends AppCompatActivity {
                             android.util.Log.d("VNPAY", "CheckOrder: order=" + status + " pay=" + payStatus);
                             if ("paid".equalsIgnoreCase(status) || "success".equalsIgnoreCase(payStatus)) {
                                 Toast.makeText(CheckoutActivity.this, "Thanh toán VNPay thành công", Toast.LENGTH_SHORT).show();
-                                // Clear server-side cart has been done by server in return/ipn
                                 CartManager.getInstance().clear();
                                 setResult(RESULT_OK);
                                 finish();
@@ -140,14 +134,12 @@ public class CheckoutActivity extends AppCompatActivity {
                         } else {
                             android.util.Log.w("VNPAY", "getOrderStatus not successful or invalid body");
                         }
-
                         if (attempts[0] < MAX_ATTEMPTS) {
                             handler.postDelayed(runnableHolder[0], INTERVAL_MS);
                         } else {
                             Toast.makeText(CheckoutActivity.this, "Thanh toán chưa được xác nhận. Vui lòng kiểm tra lịch sử đơn.", Toast.LENGTH_LONG).show();
                         }
                     }
-
                     @Override
                     public void onFailure(Call<OrderStatusResponse> call, Throwable t) {
                         android.util.Log.e("VNPAY", "checkOrder error", t);
@@ -160,11 +152,9 @@ public class CheckoutActivity extends AppCompatActivity {
                 });
             }
         };
-
-        // start immediately
         handler.post(runnableHolder[0]);
     }
-
+    
     private void recalcTotals(List<CartItem> items) {
         subtotal = 0;
         for (CartItem ci : items) {
@@ -172,11 +162,11 @@ public class CheckoutActivity extends AppCompatActivity {
         }
         shippingFee = subtotal > 100 ? 0 : 5;
         total = subtotal + shippingFee;
-
         tvSubtotal.setText(String.format(Locale.US, "Subtotal: $%.2f", subtotal));
         tvShipping.setText(String.format(Locale.US, "Shipping: $%.2f", shippingFee));
         tvTotal.setText(String.format(Locale.US, "Total: $%.2f", total));
     }
+    // --- KẾT THÚC PHẦN GIỮ NGUYÊN ---
 
     private void onPayClicked() {
         if (cartItems.isEmpty()) {
@@ -193,9 +183,18 @@ public class CheckoutActivity extends AppCompatActivity {
 
         int userId = sm.getUserId();
         String address = edtAddress.getText().toString().trim();
+        
+        // *** LẤY DỮ LIỆU SỐ ĐIỆN THOẠI ***
+        String phone = edtPhoneNumber.getText().toString().trim();
 
         if (TextUtils.isEmpty(address)) {
             Toast.makeText(this, "Vui lòng nhập địa chỉ giao hàng", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // *** THÊM KIỂM TRA CHO SỐ ĐIỆN THOẠI ***
+        if (TextUtils.isEmpty(phone)) {
+            Toast.makeText(this, "Vui lòng nhập số điện thoại", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -207,7 +206,6 @@ public class CheckoutActivity extends AppCompatActivity {
             return;
         }
 
-        // prepare items
         List<Map<String,Object>> payloadItems = new ArrayList<>();
         for (CartItem ci: cartItems) {
             Map<String,Object> m = new HashMap<>();
@@ -225,9 +223,10 @@ public class CheckoutActivity extends AppCompatActivity {
         body.put("subtotal", subtotal);
         body.put("total", total);
         body.put("address", address);
+        body.put("phone", phone);
 
         if (isCod) {
-            body.put("payment_method", "cash"); // align with server enum
+            body.put("payment_method", "cash");
             RetrofitClient.api().createOrder(body).enqueue(new Callback<ApiResponse>() {
                 @Override
                 public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
@@ -258,10 +257,7 @@ public class CheckoutActivity extends AppCompatActivity {
                         String url = response.body().payment_url;
                         int returnedOrderId = response.body().order_id;
                         currentVnPayOrderId = returnedOrderId;
-
-                        // Start polling immediately for returnedOrderId (improves UX and handles race)
                         checkOrderWithPolling(returnedOrderId);
-
                         if (!TextUtils.isEmpty(url)) {
                             CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
                             CustomTabsIntent customTabsIntent = builder.build();

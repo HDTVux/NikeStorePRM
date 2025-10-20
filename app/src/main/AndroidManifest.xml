@@ -15,6 +15,12 @@
         android:theme="@style/Theme.NikeStore"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".func.OrderDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".func.OrderHistoryActivity"
+            android:exported="false" />
+        <activity
             android:name=".func.SearchActivity"
             android:exported="false" />
         <activity

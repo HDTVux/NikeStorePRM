@@ -4,6 +4,8 @@ import com.example.nikestore.model.ApiResponse;
 import com.example.nikestore.model.BannerResponse;
 import com.example.nikestore.model.CategoriesResponse;
 import com.example.nikestore.model.NewProductsResponse;
+import com.example.nikestore.model.OrderDetailResponse;
+import com.example.nikestore.model.OrdersResponse;
 import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ReviewsResponse;
 
@@ -138,6 +140,20 @@ public interface ApiService {
             @Query("page") int page,
             @Query("page_size") int pageSize
     );
+
+    @GET("api.php")
+    Call<OrdersResponse> getUserOrders(
+            @Query("action") String action,
+            @Query("user_id") int userId
+    );
+
+    @GET("api.php")
+    Call<OrderDetailResponse> getOrderDetail(
+            @Query("action") String action,
+            @Query("order_id") int orderId,
+            @Query("user_id") int userId
+    );
+
 
 
 

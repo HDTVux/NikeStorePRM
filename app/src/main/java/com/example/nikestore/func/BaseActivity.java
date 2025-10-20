@@ -43,12 +43,11 @@ public abstract class BaseActivity extends AppCompatActivity {
 
             Intent intent = null;
             if (itemId == R.id.nav_home) {
-                // *** THE FIX: Navigate to HomePage, not MainActivity ***
                 intent = new Intent(this, HomePage.class); 
             } else if (itemId == R.id.nav_cart) {
                 intent = new Intent(this, CartActivity.class);
             } else if (itemId == R.id.nav_orders) {
-                 Toast.makeText(this, "Orders coming soon!", Toast.LENGTH_SHORT).show();
+                 intent = new Intent(this, OrderHistoryActivity.class); // Thay thế Toast bằng Intent
             } else if (itemId == R.id.nav_account) {
                  Toast.makeText(this, "Account coming soon!", Toast.LENGTH_SHORT).show();
             }
@@ -76,7 +75,8 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (bottomNavView == null) return;
         if (count <= 0) {
             bottomNavView.removeBadge(R.id.nav_cart);
-        } else {
+        }
+        else {
             bottomNavView.getOrCreateBadge(R.id.nav_cart).setNumber(count);
         }
     }
