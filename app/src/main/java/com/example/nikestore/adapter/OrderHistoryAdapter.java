@@ -1,8 +1,10 @@
 package com.example.nikestore.adapter;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -12,6 +14,7 @@ import com.example.nikestore.R;
 import com.example.nikestore.model.OrdersResponse;
 import com.example.nikestore.model.Order; 
 import com.example.nikestore.model.Payment; 
+import com.example.nikestore.func.ReviewOrderActivity;
 
 import java.util.List;
 
@@ -57,6 +60,18 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         holder.tvStatus.setText("Trạng thái: " + getStatusText(order.status)); 
         holder.tvOrderPayment.setText("Thanh toán: " + getPaymentMethod(order.payment_method));
 
+        // Logic hiển thị nút Đánh giá
+        if ("paid".equalsIgnoreCase(order.status)) {
+            holder.btnReviewOrder.setVisibility(View.VISIBLE);
+            holder.btnReviewOrder.setOnClickListener(v -> {
+                Intent intent = new Intent(v.getContext(), ReviewOrderActivity.class);
+                intent.putExtra("order_id", order.id);
+                v.getContext().startActivity(intent);
+            });
+        } else {
+            holder.btnReviewOrder.setVisibility(View.GONE);
+        }
+
         // Click mở chi tiết đơn hàng
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onOrderClick(item);
@@ -70,13 +85,15 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
 
     static class OrderViewHolder extends RecyclerView.ViewHolder {
         TextView tvOrderId, tvOrderDate, tvOrderTotal, tvStatus, tvOrderPayment; 
+        Button btnReviewOrder;
         public OrderViewHolder(@NonNull View itemView) {
             super(itemView);
             tvOrderId = itemView.findViewById(R.id.tvOrderId);
             tvOrderDate = itemView.findViewById(R.id.tvOrderDate);
-            tvOrderTotal = itemView.findViewById(R.id.tvTotal); // Đã sửa từ tvOrderTotal thành tvTotal
+            tvOrderTotal = itemView.findViewById(R.id.tvTotal); 
             tvStatus = itemView.findViewById(R.id.tvStatus); 
-            tvOrderPayment = itemView.findViewById(R.id.tvPayment); // Đã sửa từ tvOrderPayment thành tvPayment
+            tvOrderPayment = itemView.findViewById(R.id.tvPayment); 
+            btnReviewOrder = itemView.findViewById(R.id.btnReviewOrder);
         }
     }
 

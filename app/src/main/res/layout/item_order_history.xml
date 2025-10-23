@@ -39,4 +39,13 @@
         android:textColor="@color/white"
         android:text="Payment: VNPay"/>
 
+    <Button
+        android:id="@+id/btnReviewOrder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Đánh giá đơn hàng"
+        android:layout_marginTop="8dp"
+        android:layout_gravity="end"
+        android:visibility="gone"/>
+
 </LinearLayout>

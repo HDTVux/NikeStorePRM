@@ -8,6 +8,8 @@ import com.example.nikestore.model.OrderDetailResponse;
 import com.example.nikestore.model.OrdersResponse;
 import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ReviewsResponse;
+import com.example.nikestore.model.GetProductReviewResponse;
+import com.example.nikestore.model.SubmitReviewRequest;
 
 import java.util.Map;
 
@@ -80,6 +82,17 @@ public interface ApiService {
     // GET PRODUCT REVIEWS (CHÍNH THỨC: action=get_product_reviews, param product_id)
     @GET("api.php?action=get_product_reviews")
     Call<ReviewsResponse> getProductReviews(@Query("product_id") int productId);
+
+    // NEW: Get single product review by user
+    @GET("api.php?action=get_product_review")
+    Call<GetProductReviewResponse> getProductReview(
+            @Query("user_id") int userId,
+            @Query("product_id") int productId
+    );
+
+    // NEW: Submit/Update product review
+    @POST("api.php?action=submit_review")
+    Call<ApiResponse> submitReview(@Body SubmitReviewRequest request);
 
     // add to cart (POST form)
     @FormUrlEncoded
