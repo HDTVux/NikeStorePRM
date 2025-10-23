@@ -27,7 +27,6 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CartActivity extends BaseActivity {
-    // ... (các biến thành viên giữ nguyên)
     private static final int CHECKOUT_REQUEST_CODE = 101;
     private RecyclerView rv;
     private CartAdapter adapter;
@@ -40,8 +39,6 @@ public class CartActivity extends BaseActivity {
     protected void onCreate(Bundle s) {
         super.onCreate(s);
         setContentView(R.layout.activity_cart);
-
-        setupBottomNav();
 
         // ... (code setup view và adapter giữ nguyên)
         rv = findViewById(R.id.rvCartItems);

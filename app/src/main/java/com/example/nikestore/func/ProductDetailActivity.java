@@ -18,6 +18,7 @@ import com.example.nikestore.adapter.ImageSliderAdapter;
 import com.example.nikestore.adapter.ReviewAdapter;
 import com.example.nikestore.adapter.SizeAdapter;
 import com.example.nikestore.data.CartManager;
+import com.example.nikestore.model.ApiResponse;
 import com.example.nikestore.model.CartItem;
 import com.example.nikestore.model.Product;
 import com.example.nikestore.model.ProductDetailResponse;
@@ -36,7 +37,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class ProductDetailActivity extends AppCompatActivity {
+public class ProductDetailActivity extends BaseActivity {
     private ViewPager2 vpImages;
     private TabLayout indicator;
     private TextView tvTitle, tvPrice, tvDescription, tvQuantity, tvTotalPrice;
@@ -103,7 +104,7 @@ public class ProductDetailActivity extends AppCompatActivity {
             Integer vid = selectedVariantId > 0 ? selectedVariantId : null;
             RetrofitClient.api().addToCart(uid, current.id, vid, quantity)
                     .enqueue(new retrofit2.Callback<com.example.nikestore.model.ApiResponse>() {
-                        @Override public void onResponse(Call<com.example.nikestore.model.ApiResponse> c, Response<com.example.nikestore.model.ApiResponse> r) {
+                        @Override public void onResponse(Call<ApiResponse> c, Response<ApiResponse> r) {
                             if (r.isSuccessful() && r.body()!=null && r.body().success) {
                                 Toast.makeText(ProductDetailActivity.this,"Added to cart",Toast.LENGTH_SHORT).show();
                                 // optionally update badge: broadcast or call method in HomePage via shared session or stored prefs
@@ -140,6 +141,11 @@ public class ProductDetailActivity extends AppCompatActivity {
         // load
         loadProductDetail(productId);
         loadReviews(productId);
+    }
+
+    @Override
+    protected int getNavigationMenuItemId() {
+        return 0; // ProductDetailActivity is not a top-level navigation destination
     }
 
     private void loadProductDetail(int productId) {

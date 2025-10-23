@@ -37,7 +37,10 @@ public class OrderItemAdapter extends RecyclerView.Adapter<OrderItemAdapter.Orde
         holder.tvProductName.setText(item.product_name);
         holder.tvQuantity.setText("Số lượng: " + item.quantity);
         holder.tvPrice.setText("Giá: $" + item.price);
-        holder.tvTotal.setText("Tổng: $" + item.total);
+        
+        // Calculate total for each item directly
+        double itemTotal = item.quantity * item.price;
+        holder.tvTotal.setText("Tổng: $" + String.format("%.1f", itemTotal));
         
         // Đã xóa logic tải ảnh và Log.d ở đây
     }

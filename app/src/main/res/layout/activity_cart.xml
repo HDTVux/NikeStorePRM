@@ -7,8 +7,7 @@
     <!-- Container for the main cart content -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@+id/bottom_nav_container"
+        android:layout_height="match_parent" 
         android:orientation="vertical"
         android:padding="12dp">
 
@@ -57,16 +56,6 @@
             android:text="Checkout" />
     </LinearLayout>
 
-    <!-- Container for the Bottom Navigation Bar -->
-    <FrameLayout
-        android:id="@+id/bottom_nav_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true">
-
-        <!-- Include the shared bottom navigation bar -->
-        <include layout="@layout/include_bottom_nav" />
-
-    </FrameLayout>
+    <!-- Removed the duplicated Bottom Navigation Bar container -->
 
 </RelativeLayout>

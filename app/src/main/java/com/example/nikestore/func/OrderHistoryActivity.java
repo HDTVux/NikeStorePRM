@@ -23,7 +23,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class OrderHistoryActivity extends AppCompatActivity {
+public class OrderHistoryActivity extends BaseActivity {
     private RecyclerView rvOrders;
     private OrderHistoryAdapter adapter;
 
@@ -33,13 +33,13 @@ public class OrderHistoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_order_history);
 
         rvOrders = findViewById(R.id.rvOrders);
-        adapter = new OrderHistoryAdapter(new ArrayList<>()); // Sửa lỗi ở đây, truyền một ArrayList rỗng
+        adapter = new OrderHistoryAdapter(new ArrayList<>()); 
         rvOrders.setAdapter(adapter);
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
 
         adapter.setOnItemClickListener(order -> {
             Intent i = new Intent(this, OrderDetailActivity.class);
-            i.putExtra("order_id", order.order.id); // Sửa lỗi ở đây: truy cập order.order.id
+            i.putExtra("order_id", order.order.id); 
             startActivity(i);
         });
 
@@ -47,6 +47,10 @@ public class OrderHistoryActivity extends AppCompatActivity {
         loadOrders(userId);
     }
 
+    @Override
+    protected int getNavigationMenuItemId() {
+        return R.id.nav_orders; // Trả về ID của mục "Orders" trong menu
+    }
     private void loadOrders(int userId) {
         RetrofitClient.api().getUserOrders("get_user_orders", userId)
                 .enqueue(new Callback<OrdersResponse>() {

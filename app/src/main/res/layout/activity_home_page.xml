@@ -11,8 +11,7 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/bottom_nav_container"
-        android:fillViewport="true">
+        android:fillViewport="true"> <!-- Removed android:layout_above to let it fill space above BaseActivity's nav -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -150,16 +149,6 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Container for the Bottom Navigation Bar -->
-    <FrameLayout
-        android:id="@+id/bottom_nav_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true">
-
-        <!-- Include the shared bottom navigation bar -->
-        <include layout="@layout/include_bottom_nav" />
-
-    </FrameLayout>
+    <!-- Removed the duplicated Bottom Navigation Bar container -->
 
 </RelativeLayout>

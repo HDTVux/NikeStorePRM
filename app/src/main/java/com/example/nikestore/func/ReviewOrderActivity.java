@@ -23,7 +23,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class ReviewOrderActivity extends AppCompatActivity {
+public class ReviewOrderActivity extends BaseActivity {
 
     private TextView tvReviewTitle;
     private RecyclerView rvProductsForReview;
@@ -57,6 +57,11 @@ public class ReviewOrderActivity extends AppCompatActivity {
             // Sẽ được triển khai sau khi ProductReviewAdapter hoàn thành
             Toast.makeText(this, "Tính năng gửi tất cả đánh giá chưa triển khai", Toast.LENGTH_SHORT).show();
         });
+    }
+
+    @Override
+    protected int getNavigationMenuItemId() {
+        return 0; // ReviewOrderActivity is not a top-level navigation destination
     }
 
     private void loadOrderItemsForReview() {

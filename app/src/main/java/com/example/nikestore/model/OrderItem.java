@@ -6,5 +6,5 @@ public class OrderItem {
     public String image_url;
     public int quantity;
     public double price;
-    public double total;
+    // Removed public double total; as it's now calculated in the adapter
 }

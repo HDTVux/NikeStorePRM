@@ -24,7 +24,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class CategoryProductsActivity extends AppCompatActivity {
+public class CategoryProductsActivity extends BaseActivity {
     public static final String EXTRA_CAT_ID = "cat_id";
     public static final String EXTRA_CAT_NAME = "cat_name";
 
@@ -32,7 +32,7 @@ public class CategoryProductsActivity extends AppCompatActivity {
     private ProductNewAdapter adapter;
     private int categoryId;
     private String categoryName;
-    private TextView tvEmpty; // optional: add this id in layout if you want an empty placeholder
+    private TextView tvEmpty; 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,11 +41,10 @@ public class CategoryProductsActivity extends AppCompatActivity {
 
         // BIND VIEWS
         rvProducts = findViewById(R.id.rvCategoryProducts);
-        tvEmpty = findViewById(R.id.tvEmptyCategory); // nếu layout chưa có, bạn có thể ignore hoặc thêm TextView
+        tvEmpty = findViewById(R.id.tvEmptyCategory); 
 
         // INIT ADAPTER + LAYOUTMANAGER BEFORE ANY submit(...) CALL
         adapter = new ProductNewAdapter();
-        // nếu ProductNewAdapter có callback onItem click, gắn vào đây:
         try {
             adapter.setOnItemClickListener(item -> {
                 Log.d("PRODUCT_CLICK", "CategoryProducts -> open product id=" + item.id);
@@ -53,7 +52,7 @@ public class CategoryProductsActivity extends AppCompatActivity {
                 i.putExtra("product_id", item.id);
                 startActivity(i);
             });
-        } catch (Throwable ignore) { /* adapter may not have listener API in your version */ }
+        } catch (Throwable ignore) {  }
 
         rvProducts.setLayoutManager(new GridLayoutManager(this, 2));
         rvProducts.setAdapter(adapter);
@@ -67,10 +66,14 @@ public class CategoryProductsActivity extends AppCompatActivity {
         loadCategoryProducts();
     }
 
+    @Override
+    protected int getNavigationMenuItemId() {
+        return 0; // CategoryProductsActivity is not a top-level navigation destination
+    }
+
     private void loadCategoryProducts(){
         Call<NewProductsResponse> call = RetrofitClient.api().getProductsByCategory(categoryId, 1, 50, "newest");
 
-        // Log chính xác URL (giữ để debug network nếu cần)
         try {
             Log.d("CAT_PRODUCTS", "Request URL = " + call.request().url().toString());
         } catch (Throwable t) {
@@ -93,7 +96,6 @@ public class CategoryProductsActivity extends AppCompatActivity {
                         } catch (Throwable ignore) {}
                     }
 
-                    // === HERE: use getProductList() helper on NewProductsResponse ===
                     List<Product> list = null;
                     if (response.isSuccessful() && response.body() != null && response.body().success) {
                         try {
@@ -112,7 +114,6 @@ public class CategoryProductsActivity extends AppCompatActivity {
                         Log.e("CAT_PRODUCTS", "adapter is null! cannot submit list");
                     }
 
-                    // show/hide empty view if available
                     if (tvEmpty != null) {
                         tvEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
                         rvProducts.setVisibility(list.isEmpty() ? View.GONE : View.VISIBLE);
