@@ -77,7 +77,10 @@
             android:name=".MainActivity"
             android:exported="true" />
         <activity
-            android:name=".func.ReviewOrderActivity"
+            android:name="com.example.nikestore.func.ReviewOrderActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.example.nikestore.func.ProfileActivity"
             android:exported="false" />
     </application>
 

@@ -9,6 +9,7 @@ public class User {
     public int gender;
     public String address;
     public String role;
+    public int is_active; // Đã thay đổi từ boolean sang int để khớp với tinyint(1) từ backend
 
     @SerializedName("created_at")
     public String createdAt;
@@ -16,13 +17,14 @@ public class User {
     public User() {
     }
 
-    public User(int id, String email, String username, int gender, String address, String role, String createdAt) {
+    public User(int id, String email, String username, int gender, String address, String role, int is_active, String createdAt) {
         this.id = id;
         this.email = email;
         this.username = username;
         this.gender = gender;
         this.address = address;
         this.role = role;
+        this.is_active = is_active; 
         this.createdAt = createdAt;
     }
 
@@ -74,6 +76,14 @@ public class User {
         this.role = role;
     }
 
+    public int getIs_active() { // Getter cho is_active
+        return is_active;
+    }
+
+    public void setIs_active(int is_active) { // Setter cho is_active
+        this.is_active = is_active;
+    }
+
     public String getCreatedAt() {
         return createdAt;
     }
@@ -91,6 +101,7 @@ public class User {
                 ", gender=" + gender +
                 ", address='" + address + '\'' +
                 ", role='" + role + '\'' +
+                ", is_active=" + is_active +
                 ", createdAt='" + createdAt + '\'' +
                 '}';
     }

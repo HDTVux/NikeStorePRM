@@ -10,6 +10,7 @@ import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ReviewsResponse;
 import com.example.nikestore.model.GetProductReviewResponse;
 import com.example.nikestore.model.SubmitReviewRequest;
+import com.example.nikestore.model.UserResponse; // Import UserResponse
 
 import java.util.Map;
 
@@ -167,8 +168,19 @@ public interface ApiService {
             @Query("user_id") int userId
     );
 
+    // NEW: Get user profile
+    @GET("api.php")
+    Call<UserResponse> getUserProfile(
+            @Query("action") String action,
+            @Query("user_id") int userId
+    );
 
-
+    // NEW: Update user profile
+    @POST("api.php")
+    Call<UserResponse> updateUserProfile(
+            @Query("action") String action,
+            @Body Map<String, Object> body
+    );
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {
@@ -178,6 +190,4 @@ public interface ApiService {
     default Call<NewProductsResponse> searchProducts(String q) {
         return searchProducts(q, 1, 50);
     }
-
-
 }

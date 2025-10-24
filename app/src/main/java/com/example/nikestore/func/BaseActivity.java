@@ -45,7 +45,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void setContentView(View view) {
         if (containerMainContent != null) {
             containerMainContent.addView(view);
-        } else {
+        }
+        else {
             super.setContentView(view);
         }
     }
@@ -54,7 +55,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void setContentView(View view, ViewGroup.LayoutParams params) {
         if (containerMainContent != null) {
             containerMainContent.addView(view, params);
-        } else {
+        }
+        else {
             super.setContentView(view, params);
         }
     }
@@ -86,7 +88,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             } else if (itemId == R.id.nav_orders) {
                  intent = new Intent(this, OrderHistoryActivity.class); 
             } else if (itemId == R.id.nav_account) {
-                 Toast.makeText(this, "Account coming soon!", Toast.LENGTH_SHORT).show(); // Maybe launch an AccountActivity later
+                 intent = new Intent(this, ProfileActivity.class); // Launch ProfileActivity
             }
 
             if (intent != null) {
