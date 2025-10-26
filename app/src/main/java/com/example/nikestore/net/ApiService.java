@@ -2,6 +2,7 @@ package com.example.nikestore.net;
 
 import com.example.nikestore.model.ApiResponse;
 import com.example.nikestore.model.BannerResponse;
+import com.example.nikestore.model.CartResponse;
 import com.example.nikestore.model.CategoriesResponse;
 import com.example.nikestore.model.NewProductsResponse;
 import com.example.nikestore.model.OrderDetailResponse;
@@ -11,6 +12,7 @@ import com.example.nikestore.model.ReviewsResponse;
 import com.example.nikestore.model.GetProductReviewResponse;
 import com.example.nikestore.model.SubmitReviewRequest;
 import com.example.nikestore.model.UserResponse; // Import UserResponse
+import com.example.nikestore.model.WishlistResponse; // Import WishlistResponse
 
 import java.util.Map;
 
@@ -181,6 +183,18 @@ public interface ApiService {
             @Query("action") String action,
             @Body Map<String, Object> body
     );
+
+    // ================== Add/Remove/Get favorite ==================
+    @FormUrlEncoded
+    @POST("api.php?action=add_favorite")
+    Call<ApiResponse> addFavorite(@Field("user_id") int userId, @Field("product_id") int productId);
+
+    @FormUrlEncoded
+    @POST("api.php?action=remove_favorite")
+    Call<ApiResponse> removeFavorite(@Field("user_id") int userId, @Field("product_id") int productId);
+
+    @GET("api.php?action=get_favorite") // Note: Backend uses GET for get_favorite
+    Call<WishlistResponse> getFavorites(@Query("user_id") int userId);
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {

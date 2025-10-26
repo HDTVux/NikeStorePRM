@@ -82,6 +82,10 @@
         <activity
             android:name="com.example.nikestore.func.ProfileActivity"
             android:exported="false" />
+        <!-- NEW: Declare WishlistActivity -->
+        <activity
+            android:name="com.example.nikestore.func.WishlistActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

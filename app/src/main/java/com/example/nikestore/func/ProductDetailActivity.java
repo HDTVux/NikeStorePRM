@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,7 +26,9 @@ import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ProductVariant;
 import com.example.nikestore.model.Review;
 import com.example.nikestore.model.ReviewsResponse;
+import com.example.nikestore.model.WishlistResponse; // Import WishlistResponse
 import com.example.nikestore.net.RetrofitClient;
+import com.example.nikestore.util.SessionManager; // Import SessionManager
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
@@ -44,6 +47,10 @@ public class ProductDetailActivity extends BaseActivity {
     private RecyclerView rvSizes;
     private ImageButton btnBack, btnMinus, btnPlus;
     private Button btnAddToCart;
+    private ImageView ivFavoriteDetail; // New: Favorite icon
+    private SessionManager sessionManager; // New: SessionManager instance
+    private boolean isProductFavorited = false; // New: Track favorite status
+
     private DecimalFormat money = new DecimalFormat("#,##0.##");
 
     private int quantity = 1;
@@ -67,6 +74,8 @@ public class ProductDetailActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_product_detail);
 
+        sessionManager = SessionManager.getInstance(this); // Init SessionManager
+
         // bind views
         vpImages = findViewById(R.id.vpImages);
         indicator = findViewById(R.id.indicator);
@@ -80,6 +89,7 @@ public class ProductDetailActivity extends BaseActivity {
         btnMinus = findViewById(R.id.btnMinus);
         btnPlus = findViewById(R.id.btnPlus);
         btnAddToCart = findViewById(R.id.btnAddToCart);
+        ivFavoriteDetail = findViewById(R.id.ivFavoriteDetail); // Bind favorite icon
         rvReviews = findViewById(R.id.rvReviews);
         tvReviewsHeader = findViewById(R.id.tvReviewsHeader);
         tvNoReviews = findViewById(R.id.tvNoReviews);
@@ -95,27 +105,29 @@ public class ProductDetailActivity extends BaseActivity {
         });
         btnPlus.setOnClickListener(v -> {
             quantity++;
-            tvQuantity.setText(String.valueOf(quantity));
-            updateTotal();
+                tvQuantity.setText(String.valueOf(quantity));
+                updateTotal();
         });
         btnAddToCart.setOnClickListener(v->{
-            int uid = new com.example.nikestore.util.SessionManager(this).getUserId();
-            if (uid<=0) { Toast.makeText(this,"Please login",Toast.LENGTH_SHORT).show(); return; }
+            int uid = sessionManager.getUserId();
+            if (uid<=0) { Toast.makeText(this,"Vui lòng đăng nhập để thêm vào giỏ hàng",Toast.LENGTH_SHORT).show(); return; }
             Integer vid = selectedVariantId > 0 ? selectedVariantId : null;
             RetrofitClient.api().addToCart(uid, current.id, vid, quantity)
                     .enqueue(new retrofit2.Callback<com.example.nikestore.model.ApiResponse>() {
                         @Override public void onResponse(Call<ApiResponse> c, Response<ApiResponse> r) {
                             if (r.isSuccessful() && r.body()!=null && r.body().success) {
-                                Toast.makeText(ProductDetailActivity.this,"Added to cart",Toast.LENGTH_SHORT).show();
+                                Toast.makeText(ProductDetailActivity.this,"Đã thêm vào giỏ hàng",Toast.LENGTH_SHORT).show();
                                 // optionally update badge: broadcast or call method in HomePage via shared session or stored prefs
                             } else {
-                                Toast.makeText(ProductDetailActivity.this,"Cannot add to cart",Toast.LENGTH_SHORT).show();
+                                Toast.makeText(ProductDetailActivity.this,"Không thể thêm vào giỏ hàng",Toast.LENGTH_SHORT).show();
                             }
                         }
-                        @Override public void onFailure(Call<com.example.nikestore.model.ApiResponse> c, Throwable t) { Toast.makeText(ProductDetailActivity.this,"Network error",Toast.LENGTH_SHORT).show(); }
+                        @Override public void onFailure(Call<com.example.nikestore.model.ApiResponse> c, Throwable t) { Toast.makeText(ProductDetailActivity.this,"Lỗi mạng",Toast.LENGTH_SHORT).show(); }
                     });
         });
 
+        // New: Favorite icon click listener
+        ivFavoriteDetail.setOnClickListener(v -> toggleFavorite());
 
         tvReviewsHeader.setOnClickListener(v -> {
             if (!allReviews.isEmpty()) {
@@ -169,6 +181,7 @@ public class ProductDetailActivity extends BaseActivity {
                             setupImageSlider(images);
                             variants = current.variants != null ? current.variants : new ArrayList<>();
                             setupSizes();
+                            checkFavoriteStatus(); // New: Check favorite status after loading product
                         } else {
                             Log.e("PRODUCT_DETAIL", "unexpected response, code=" + response.code());
                             Toast.makeText(ProductDetailActivity.this, "Không lấy được chi tiết sản phẩm", Toast.LENGTH_SHORT).show();
@@ -181,6 +194,106 @@ public class ProductDetailActivity extends BaseActivity {
                         Toast.makeText(ProductDetailActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private void checkFavoriteStatus() {
+        int userId = sessionManager.getUserId();
+        if (userId <= 0) {
+            // User not logged in, cannot be favorited
+            ivFavoriteDetail.setImageResource(R.drawable.ic_favorite_border);
+            isProductFavorited = false;
+            return;
+        }
+        if (current == null) return;
+
+        RetrofitClient.api().getFavorites(userId).enqueue(new Callback<WishlistResponse>() {
+            @Override
+            public void onResponse(Call<WishlistResponse> call, Response<WishlistResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().success) {
+                    List<Product> wishlist = response.body().wishlist;
+                    isProductFavorited = false;
+                    if (wishlist != null) {
+                        for (Product p : wishlist) {
+                            if (p.id == current.id) {
+                                isProductFavorited = true;
+                                break;
+                            }
+                        }
+                    }
+                    updateFavoriteIcon();
+                } else {
+                    Log.e("PRODUCT_DETAIL", "Failed to get wishlist: " + response.message());
+                    updateFavoriteIcon(); // Still update icon to default if API fails
+                }
+            }
+
+            @Override
+            public void onFailure(Call<WishlistResponse> call, Throwable t) {
+                Log.e("PRODUCT_DETAIL", "Network error checking favorite: " + t.getMessage());
+                updateFavoriteIcon(); // Still update icon to default on network error
+            }
+        });
+    }
+
+    private void toggleFavorite() {
+        int userId = sessionManager.getUserId();
+        if (userId <= 0) {
+            Toast.makeText(this, "Vui lòng đăng nhập để thêm vào danh sách yêu thích", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (current == null) return;
+
+        if (isProductFavorited) {
+            // Remove from favorite
+            RetrofitClient.api().removeFavorite(userId, current.id).enqueue(new Callback<ApiResponse>() {
+                @Override
+                public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().success) {
+                        isProductFavorited = false;
+                        updateFavoriteIcon();
+                        Toast.makeText(ProductDetailActivity.this, "Đã xóa khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(ProductDetailActivity.this, "Không thể xóa khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show();
+                        Log.e("PRODUCT_DETAIL", "Remove favorite failed: " + response.message());
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse> call, Throwable t) {
+                    Toast.makeText(ProductDetailActivity.this, "Lỗi mạng khi xóa yêu thích", Toast.LENGTH_SHORT).show();
+                    Log.e("PRODUCT_DETAIL", "Network error removing favorite: " + t.getMessage());
+                }
+            });
+        } else {
+            // Add to favorite
+            RetrofitClient.api().addFavorite(userId, current.id).enqueue(new Callback<ApiResponse>() {
+                @Override
+                public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().success) {
+                        isProductFavorited = true;
+                        updateFavoriteIcon();
+                        Toast.makeText(ProductDetailActivity.this, "Đã thêm vào danh sách yêu thích", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(ProductDetailActivity.this, "Không thể thêm vào danh sách yêu thích", Toast.LENGTH_SHORT).show();
+                        Log.e("PRODUCT_DETAIL", "Add favorite failed: " + response.message());
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse> call, Throwable t) {
+                    Toast.makeText(ProductDetailActivity.this, "Lỗi mạng khi thêm yêu thích", Toast.LENGTH_SHORT).show();
+                    Log.e("PRODUCT_DETAIL", "Network error adding favorite: " + t.getMessage());
+                }
+            });
+        }
+    }
+
+    private void updateFavoriteIcon() {
+        if (isProductFavorited) {
+            ivFavoriteDetail.setImageResource(R.drawable.ic_favorite);
+        } else {
+            ivFavoriteDetail.setImageResource(R.drawable.ic_favorite_border);
+        }
     }
 
     private void loadReviews(int productId) {
@@ -220,7 +333,8 @@ public class ProductDetailActivity extends BaseActivity {
                 reviewAdapter.submitList(new ArrayList<>(allReviews));
                 tvReviewsHeader.setText("Reviews (Hide)");
                 tvReviewsHeader.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_up, 0);
-            } else {
+            }
+            else {
                 int count = Math.min(INITIAL_REVIEWS_TO_SHOW, allReviews.size());
                 List<Review> sublist = new ArrayList<>(allReviews.subList(0, count));
                 reviewAdapter.submitList(sublist);

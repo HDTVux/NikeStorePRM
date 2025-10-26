@@ -9,5 +9,6 @@
     <color name="black">#FF000000</color>
     <color name="orange">#C34A0E</color>
     <color name="red_error_color">#FF4444</color> <!-- Added red_error_color -->
+    <color name="red">#FF0000</color> <!-- NEW: Added red color for favorite icon -->
 
 </resources>

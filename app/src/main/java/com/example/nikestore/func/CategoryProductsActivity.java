@@ -44,7 +44,7 @@ public class CategoryProductsActivity extends BaseActivity {
         tvEmpty = findViewById(R.id.tvEmptyCategory); 
 
         // INIT ADAPTER + LAYOUTMANAGER BEFORE ANY submit(...) CALL
-        adapter = new ProductNewAdapter();
+        adapter = new ProductNewAdapter(this);
         try {
             adapter.setOnItemClickListener(item -> {
                 Log.d("PRODUCT_CLICK", "CategoryProducts -> open product id=" + item.id);

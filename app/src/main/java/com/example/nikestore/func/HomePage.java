@@ -91,7 +91,7 @@ public class HomePage extends BaseActivity {
             startActivity(i);
         });
         rvNewProducts = findViewById(R.id.rvNewProducts);
-        newAdapter = new ProductNewAdapter();
+        newAdapter = new ProductNewAdapter(this);
         newAdapter.setOnItemClickListener(item -> {
             Intent i = new Intent(this, ProductDetailActivity.class);
             i.putExtra("product_id", item.id);

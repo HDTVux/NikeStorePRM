@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container_main_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/white"
+    tools:context=".func.WishlistActivity">
+
+    <!-- TextView hiển thị khi wishlist trống -->
+    <TextView
+        android:id="@+id/tvEmptyWishlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="80dp"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="16dp"
+        android:gravity="center"
+        android:text="Danh sách yêu thích của bạn đang trống."
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:visibility="gone"
+        android:lineSpacingExtra="6dp" />
+
+    <!-- Danh sách sản phẩm yêu thích -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvWishlistProducts"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp"
+        android:scrollbarStyle="outsideOverlay"
+        android:scrollbars="vertical"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:spanCount="2"
+        tools:listitem="@layout/item_product_card" />
+
+</LinearLayout>
