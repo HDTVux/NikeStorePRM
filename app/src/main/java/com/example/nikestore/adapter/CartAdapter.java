@@ -1,5 +1,6 @@
 package com.example.nikestore.adapter;
 
+import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -35,7 +37,22 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.VH> {
         CartItem it = data.get(pos);
         h.tvName.setText(it.product_name);
         h.tvVariant.setText(it.variant_size != null ? "Size: "+it.variant_size : "");
-        h.tvPrice.setText("$" + money.format(it.price));
+
+        // NEW: Logic để hiển thị giá gốc và giá giảm giá
+        if (it.getDiscount_percent() > 0) {
+            // Có khuyến mãi
+            h.tvOriginalPrice.setText("$" + money.format(it.getPrice()));
+            h.tvOriginalPrice.setPaintFlags(h.tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            h.tvOriginalPrice.setVisibility(View.VISIBLE);
+            h.tvPrice.setText("$" + money.format(it.getFinal_price()));
+            h.tvPrice.setTextColor(ContextCompat.getColor(h.itemView.getContext(), R.color.red)); // Màu đỏ cho giá sale
+        } else {
+            // Không có khuyến mãi
+            h.tvOriginalPrice.setVisibility(View.GONE);
+            h.tvPrice.setText("$" + money.format(it.getPrice()));
+            h.tvPrice.setTextColor(ContextCompat.getColor(h.itemView.getContext(), R.color.black)); // Màu đen cho giá thường
+        }
+
         h.tvQty.setText(String.valueOf(it.quantity));
         Glide.with(h.itemView.getContext()).load(it.image_url==null?"":it.image_url).placeholder(android.R.drawable.ic_menu_gallery).into(h.img);
 
@@ -60,12 +77,13 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.VH> {
     }
     @Override public int getItemCount(){ return data.size(); }
     static class VH extends RecyclerView.ViewHolder {
-        ImageView img; TextView tvName, tvVariant, tvPrice, tvQty; ImageButton btnMinus, btnPlus, btnRemove;
+        ImageView img; TextView tvName, tvVariant, tvPrice, tvOriginalPrice, tvQty; ImageButton btnMinus, btnPlus, btnRemove;
         VH(@NonNull View v){
             super(v);
             img = v.findViewById(R.id.img);
             tvName = v.findViewById(R.id.tvName);
             tvVariant = v.findViewById(R.id.tvVariant);
+            tvOriginalPrice = v.findViewById(R.id.tvOriginalPrice); // NEW: Find tvOriginalPrice
             tvPrice = v.findViewById(R.id.tvPrice);
             tvQty = v.findViewById(R.id.tvQty);
             btnMinus = v.findViewById(R.id.btnMinus);

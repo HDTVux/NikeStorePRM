@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
@@ -19,7 +20,8 @@
             android:layout_height="wrap_content"
             android:text="Tên sản phẩm"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:text="Nike ZoomX Vaporfly Next (Men)" />
 
         <TextView
             android:id="@+id/tvProductQuantity"
@@ -27,7 +29,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Số lượng: 1"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            tools:text="Số lượng: 1" />
 
         <LinearLayout
             android:id="@+id/layoutReviewInput"
@@ -42,14 +45,15 @@
                 android:layout_height="wrap_content"
                 android:numStars="5"
                 android:stepSize="1"
-                style="?android:attr/ratingBarStyle" /> <!-- Đã thay đổi style thành RatingBarStyle tiêu chuẩn -->
+                style="?android:attr/ratingBarStyle" />
 
             <EditText
                 android:id="@+id/edtComment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:hint="Bình luận của bạn" />
+                android:hint="Bình luận của bạn"
+                tools:text="Sản phẩm tuyệt vời!" />
 
             <Button
                 android:id="@+id/btnSubmitReview"
@@ -69,7 +73,8 @@
             android:text="Đã đánh giá (4 sao): 'Sản phẩm tuyệt vời!'"
             android:textSize="14sp"
             android:textColor="@android:color/holo_green_dark"
-            android:visibility="gone" />
+            android:visibility="gone"
+            tools:text="Đã đánh giá (4 sao): 'Sản phẩm tuyệt vời!'" />
 
     </LinearLayout>
 

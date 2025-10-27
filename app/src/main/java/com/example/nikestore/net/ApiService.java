@@ -11,8 +11,9 @@ import com.example.nikestore.model.ProductDetailResponse;
 import com.example.nikestore.model.ReviewsResponse;
 import com.example.nikestore.model.GetProductReviewResponse;
 import com.example.nikestore.model.SubmitReviewRequest;
-import com.example.nikestore.model.UserResponse; // Import UserResponse
-import com.example.nikestore.model.WishlistResponse; // Import WishlistResponse
+import com.example.nikestore.model.UserResponse;
+import com.example.nikestore.model.WishlistResponse;
+import com.example.nikestore.model.PromotionResponse; // NEW: Import PromotionResponse
 
 import java.util.Map;
 
@@ -193,8 +194,12 @@ public interface ApiService {
     @POST("api.php?action=remove_favorite")
     Call<ApiResponse> removeFavorite(@Field("user_id") int userId, @Field("product_id") int productId);
 
-    @GET("api.php?action=get_favorite") // Note: Backend uses GET for get_favorite
+    @GET("api.php?action=get_favorite")
     Call<WishlistResponse> getFavorites(@Query("user_id") int userId);
+
+    // NEW: Get Active Promotions
+    @GET("api.php?action=get_promotions")
+    Call<PromotionResponse> getPromotions();
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {

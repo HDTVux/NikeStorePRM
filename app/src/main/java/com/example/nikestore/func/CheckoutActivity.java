@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.*;
 import androidx.annotation.Nullable;
@@ -29,6 +30,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CheckoutActivity extends AppCompatActivity {
+    private static final String TAG = "CheckoutActivity"; // NEW: Tag cho Logcat
+    private static final int CHECKOUT_REQUEST_CODE = 101;
     private RecyclerView rvCart;
     private TextView tvSubtotal, tvShipping, tvTotal;
     private RadioButton rbCod, rbVnpay;
@@ -64,6 +67,24 @@ public class CheckoutActivity extends AppCompatActivity {
         edtPhoneNumber = findViewById(R.id.edtPhoneNumber);
 
         cartAdapter = new com.example.nikestore.adapter.CartAdapter();
+        cartAdapter.setListener(new CartAdapter.Listener() {
+            @Override
+            public void onQtyChanged(CartItem item, int newQty) {
+                // NOTE: When quantity changes, we need to ensure the totals are re-calculated
+                // However, this adapter is only for displaying. The actual cart quantity update
+                // happens in CartActivity, which then reloads the cart. This activity gets
+                // a list of cart items passed via intent, so a full reload or explicit update
+                // is not straightforward here without modifying the passed list.
+                // For now, assume the list received here is static and read-only for totals.
+                // If quantity changes should reflect live, then this activity should also
+                // listen to CartManager changes or fetch its own cart data.
+            }
+
+            @Override
+            public void onRemove(CartItem item) {
+                // Similar to onQtyChanged, removal logic isn't directly handled here.
+            }
+        });
         rvCart.setAdapter(cartAdapter);
         rvCart.setLayoutManager(new LinearLayoutManager(this));
 
@@ -79,13 +100,13 @@ public class CheckoutActivity extends AppCompatActivity {
         btnPay.setOnClickListener(v -> onPayClicked());
     }
 
-    // --- CÁC PHƯƠNG THỨC onNewIntent, checkOrderWithPolling, recalcTotals GIỮ NGUYÊN ---
+    // --- CÁC PHƯƠNG THỨC onNewIntent, checkOrderWithPolling GIỮ NGUYÊN ---
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         Uri data = intent.getData();
         if (data != null && "app".equals(data.getScheme()) && "vnpay-return".equals(data.getHost())) {
-            android.util.Log.d("VNPAY", "DeepLink URI: " + data.toString());
+            Log.d(TAG, "DeepLink URI: " + data.toString()); // Changed Log.d tag
             String txnRef = data.getQueryParameter("vnp_TxnRef");
             int orderId = -1;
             if (txnRef != null) {
@@ -116,14 +137,14 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void run() {
                 attempts[0]++;
-                android.util.Log.d("VNPAY", "Polling order status attempt " + attempts[0] + " for order " + orderId);
+                Log.d(TAG, "Polling order status attempt " + attempts[0] + " for order " + orderId); // Changed Log.d tag
                 RetrofitClient.api().getOrderStatus(orderId).enqueue(new Callback<OrderStatusResponse>() {
                     @Override
                     public void onResponse(Call<OrderStatusResponse> call, Response<OrderStatusResponse> response) {
                         if (response.isSuccessful() && response.body() != null && response.body().success) {
                             String status = response.body().order != null ? response.body().order.status : null;
                             String payStatus = response.body().payment != null ? response.body().payment.status : null;
-                            android.util.Log.d("VNPAY", "CheckOrder: order=" + status + " pay=" + payStatus);
+                            Log.d(TAG, "CheckOrder: order=" + status + " pay=" + payStatus); // Changed Log.d tag
                             if ("paid".equalsIgnoreCase(status) || "success".equalsIgnoreCase(payStatus)) {
                                 Toast.makeText(CheckoutActivity.this, "Thanh toán VNPay thành công", Toast.LENGTH_SHORT).show();
                                 CartManager.getInstance().clear();
@@ -132,7 +153,7 @@ public class CheckoutActivity extends AppCompatActivity {
                                 return;
                             }
                         } else {
-                            android.util.Log.w("VNPAY", "getOrderStatus not successful or invalid body");
+                            Log.w(TAG, "getOrderStatus not successful or invalid body"); // Changed Log.w tag
                         }
                         if (attempts[0] < MAX_ATTEMPTS) {
                             handler.postDelayed(runnableHolder[0], INTERVAL_MS);
@@ -142,11 +163,9 @@ public class CheckoutActivity extends AppCompatActivity {
                     }
                     @Override
                     public void onFailure(Call<OrderStatusResponse> call, Throwable t) {
-                        android.util.Log.e("VNPAY", "checkOrder error", t);
+                        Log.e(TAG, "checkOrder error", t); // Changed Log.e tag
                         if (attempts[0] < MAX_ATTEMPTS) {
                             handler.postDelayed(runnableHolder[0], INTERVAL_MS);
-                        } else {
-                            Toast.makeText(CheckoutActivity.this, "Không thể kiểm tra trạng thái đơn. Lỗi mạng", Toast.LENGTH_LONG).show();
                         }
                     }
                 });
@@ -157,11 +176,17 @@ public class CheckoutActivity extends AppCompatActivity {
     
     private void recalcTotals(List<CartItem> items) {
         subtotal = 0;
+        Log.d(TAG, "recalcTotals: Starting calculation");
         for (CartItem ci : items) {
-            subtotal += ci.getPrice() * ci.getQuantity();
+            double itemFinalPrice = ci.getFinal_price();
+            int itemQuantity = ci.getQuantity();
+            double itemSubtotal = itemFinalPrice * itemQuantity;
+            subtotal += itemSubtotal;
+            Log.d(TAG, "  Item: " + ci.getProduct_name() + ", Final Price: $" + itemFinalPrice + ", Qty: " + itemQuantity + ", Item Subtotal: $" + itemSubtotal + ", Current Total Subtotal: $" + subtotal);
         }
         shippingFee = subtotal > 100 ? 0 : 5;
         total = subtotal + shippingFee;
+        Log.d(TAG, "recalcTotals: Calculated Subtotal: $" + subtotal + ", Shipping: $" + shippingFee + ", Total: $" + total);
         tvSubtotal.setText(String.format(Locale.US, "Subtotal: $%.2f", subtotal));
         tvShipping.setText(String.format(Locale.US, "Shipping: $%.2f", shippingFee));
         tvTotal.setText(String.format(Locale.US, "Total: $%.2f", total));
@@ -265,7 +290,8 @@ public class CheckoutActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(CheckoutActivity.this, "URL VNPay rỗng", Toast.LENGTH_SHORT).show();
                         }
-                    } else {
+                    }
+                     else {
                         Toast.makeText(CheckoutActivity.this,
                                 "Lỗi tạo VNPay: " + (response.body() != null ? response.body().message : "server"),
                                 Toast.LENGTH_LONG).show();

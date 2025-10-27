@@ -15,10 +15,13 @@ import com.example.nikestore.R;
 import com.example.nikestore.adapter.ProductNewAdapter;
 import com.example.nikestore.model.NewProductsResponse;
 import com.example.nikestore.model.Product;
+import com.example.nikestore.model.PromotionResponse; // NEW: Import PromotionResponse
 import com.example.nikestore.net.RetrofitClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch; // NEW: Import CountDownLatch
+import java.util.concurrent.TimeUnit; // NEW: Import TimeUnit
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -32,7 +35,9 @@ public class CategoryProductsActivity extends BaseActivity {
     private ProductNewAdapter adapter;
     private int categoryId;
     private String categoryName;
-    private TextView tvEmpty; 
+    private TextView tvEmpty;
+    private List<Product> currentProducts = new ArrayList<>(); // NEW: To hold products from API
+    private List<Product> currentPromotions = new ArrayList<>(); // NEW: To hold promotions from API
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +46,7 @@ public class CategoryProductsActivity extends BaseActivity {
 
         // BIND VIEWS
         rvProducts = findViewById(R.id.rvCategoryProducts);
-        tvEmpty = findViewById(R.id.tvEmptyCategory); 
+        tvEmpty = findViewById(R.id.tvEmptyCategory);
 
         // INIT ADAPTER + LAYOUTMANAGER BEFORE ANY submit(...) CALL
         adapter = new ProductNewAdapter(this);
@@ -72,66 +77,88 @@ public class CategoryProductsActivity extends BaseActivity {
     }
 
     private void loadCategoryProducts(){
-        Call<NewProductsResponse> call = RetrofitClient.api().getProductsByCategory(categoryId, 1, 50, "newest");
+        final CountDownLatch latch = new CountDownLatch(2); // Wait for 2 API calls
 
-        try {
-            Log.d("CAT_PRODUCTS", "Request URL = " + call.request().url().toString());
-        } catch (Throwable t) {
-            Log.e("CAT_PRODUCTS", "Cannot get request URL: " + t.getMessage(), t);
-        }
-
-        call.enqueue(new Callback<NewProductsResponse>() {
+        // --- Call 1: Get Products by Category ---
+        Call<NewProductsResponse> productsCall = RetrofitClient.api().getProductsByCategory(categoryId, 1, 50, "newest");
+        productsCall.enqueue(new Callback<NewProductsResponse>() {
             @Override
             public void onResponse(Call<NewProductsResponse> call, Response<NewProductsResponse> response) {
-                try {
-                    Log.d("CAT_PRODUCTS", "HTTP code=" + response.code());
-                    if (response.body() != null) {
-                        try {
-                            Log.d("CAT_PRODUCTS", "parsed body: " + new com.google.gson.Gson().toJson(response.body()));
-                        } catch(Throwable ignore){}
-                    } else {
-                        try {
-                            String raw = response.errorBody() != null ? response.errorBody().string() : "null";
-                            Log.d("CAT_PRODUCTS", "empty body, error raw: " + raw);
-                        } catch (Throwable ignore) {}
-                    }
-
-                    List<Product> list = null;
-                    if (response.isSuccessful() && response.body() != null && response.body().success) {
-                        try {
-                            list = response.body().getProductList();
-                        } catch (Throwable t) {
-                            Log.w("CAT_PRODUCTS", "getProductList() not present or failed: " + t.getMessage());
-                        }
-                    }
-
-                    if (list == null) list = new ArrayList<>();
-
-                    Log.d("CAT_PRODUCTS", "final product count = " + list.size());
-                    if (adapter != null) {
-                        adapter.submit(list);
-                    } else {
-                        Log.e("CAT_PRODUCTS", "adapter is null! cannot submit list");
-                    }
-
-                    if (tvEmpty != null) {
-                        tvEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
-                        rvProducts.setVisibility(list.isEmpty() ? View.GONE : View.VISIBLE);
-                    }
-                } catch (Throwable t) {
-                    Log.e("CAT_PRODUCTS","onResponse crash-guard: " + t.getMessage(), t);
-                    if (adapter != null) adapter.submit(new ArrayList<>());
-                    if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
+                if (response.isSuccessful() && response.body() != null && response.body().success) {
+                    currentProducts = response.body().getProductList() != null ? response.body().getProductList() : new ArrayList<>();
+                } else {
+                    Log.e("CAT_PRODUCTS", "Failed to load products: " + response.message());
                 }
+                latch.countDown();
             }
 
             @Override
             public void onFailure(Call<NewProductsResponse> call, Throwable t) {
-                Log.e("CAT_PRODUCTS","err", t);
-                Toast.makeText(CategoryProductsActivity.this, "Lỗi mạng", Toast.LENGTH_SHORT).show();
-                if (adapter != null) adapter.submit(new ArrayList<>());
-                if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
+                Log.e("CAT_PRODUCTS", "Error loading products: " + t.getMessage(), t);
+                latch.countDown();
             }
         });
+
+        // --- Call 2: Get Promotions ---
+        Call<PromotionResponse> promotionsCall = RetrofitClient.api().getPromotions();
+        promotionsCall.enqueue(new Callback<PromotionResponse>() {
+            @Override
+            public void onResponse(Call<PromotionResponse> call, Response<PromotionResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().success) {
+                    currentPromotions = response.body().promotions != null ? response.body().promotions : new ArrayList<>();
+                } else {
+                    Log.e("CAT_PRODUCTS", "Failed to load promotions: " + response.message());
+                }
+                latch.countDown();
+            }
+
+            @Override
+            public void onFailure(Call<PromotionResponse> call, Throwable t) {
+                Log.e("CAT_PRODUCTS", "Error loading promotions: " + t.getMessage(), t);
+                latch.countDown();
+            }
+        });
+
+        // --- Wait for both calls to complete ---
+        new Thread(() -> {
+            try {
+                latch.await(10, TimeUnit.SECONDS); // Wait for a maximum of 10 seconds
+                runOnUiThread(() -> {
+                    // Apply promotions and update UI on the main thread
+                    applyPromotionsToProducts(currentProducts, currentPromotions);
+                    adapter.submit(currentProducts);
+
+                    if (tvEmpty != null) {
+                        tvEmpty.setVisibility(currentProducts.isEmpty() ? View.VISIBLE : View.GONE);
+                        rvProducts.setVisibility(currentProducts.isEmpty() ? View.GONE : View.VISIBLE);
+                        if (currentProducts.isEmpty()) {
+                            tvEmpty.setText("Không có sản phẩm nào trong danh mục này.");
+                        }
+                    }
+                });
+            } catch (InterruptedException e) {
+                Log.e("CAT_PRODUCTS", "Latch interrupted: " + e.getMessage(), e);
+                runOnUiThread(() -> {
+                    Toast.makeText(CategoryProductsActivity.this, "Lỗi tải dữ liệu", Toast.LENGTH_SHORT).show();
+                    if (adapter != null) adapter.submit(new ArrayList<>());
+                    if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
+                });
+            }
+        }).start();
     }
+
+    // NEW: Method to apply promotion data to products
+    private void applyPromotionsToProducts(List<Product> products, List<Product> promotions) {
+        for (Product product : products) {
+            for (Product promo : promotions) {
+                if (product.id == promo.product_id) {
+                    product.discount_percent = promo.discount_percent;
+                    product.final_price = promo.final_price;
+                    // Optionally, you might want to break here if each product only has one active promotion
+                    break;
+                }
+            }
+        }
+    }
+
 }

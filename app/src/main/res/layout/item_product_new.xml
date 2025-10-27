@@ -2,6 +2,7 @@
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:card="http://schemas.android.com/apk/res-auto"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="180dp"
     android:layout_height="240dp"
     android:layout_margin="3dp"
@@ -25,7 +26,8 @@
                 android:id="@+id/imgProduct"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop" />
+                android:scaleType="centerCrop"
+                tools:src="@tools:sample/avatars" />
 
             <ImageView
                 android:id="@+id/ivFavorite"
@@ -35,7 +37,7 @@
                 android:padding="4dp"
                 android:src="@drawable/ic_favorite_border"
                 app:tint="@color/red"
-                android:background="@drawable/circle_background_white" /> <!-- Tạo hình nền tròn trắng nếu cần -->
+                android:background="@drawable/circle_background_white" />
 
         </FrameLayout>
 
@@ -48,15 +50,40 @@
             android:maxLines="2"
             android:ellipsize="end"
             android:layout_marginTop="8dp"
-            android:textColor="@color/black"/>
+            android:textColor="@color/black"
+            tools:text="Nike ZoomX Vaporfly Next (Men)" />
 
-        <TextView
-            android:id="@+id/tvPrice"
-            android:layout_width="wrap_content"
+        <!-- NEW: LinearLayout for prices -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="$0.00"
-            android:textStyle="bold"
-            android:layout_marginTop="4dp"
-            android:textColor="@color/black"/>
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/tvOriginalPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$0.00"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray"
+                android:layout_marginEnd="4dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="gone"
+                tools:text="$300.00" />
+
+            <TextView
+                android:id="@+id/tvPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$0.00"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:textSize="14sp"
+                tools:text="$275.00" />
+
+        </LinearLayout>
+
     </LinearLayout>
 </androidx.cardview.widget.CardView>

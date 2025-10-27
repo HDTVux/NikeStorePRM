@@ -7,4 +7,8 @@ public class OrderItem {
     public int quantity;
     public double price;
     // Removed public double total; as it's now calculated in the adapter
+
+    // NEW: Các trường cho chương trình khuyến mãi
+    public double discount_percent;
+    public double final_price;
 }

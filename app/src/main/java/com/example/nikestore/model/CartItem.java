@@ -15,10 +15,16 @@ public class CartItem implements Parcelable {
     public String image_url;
     public double unitPrice;
 
+    // NEW: Các trường cho chương trình khuyến mãi trong giỏ hàng
+    public double discount_percent;
+    public double final_price;
+
     public CartItem() {
     }
 
-    public CartItem(int item_id, int product_id, String product_name, double price, int quantity, Double subtotal, Integer variant_id, String variant_size, String image_url, double unitPrice) {
+    public CartItem(int item_id, int product_id, String product_name, double price, int quantity,
+                    Double subtotal, Integer variant_id, String variant_size, String image_url,
+                    double unitPrice, double discount_percent, double final_price) {
         this.item_id = item_id;
         this.product_id = product_id;
         this.product_name = product_name;
@@ -29,6 +35,8 @@ public class CartItem implements Parcelable {
         this.variant_size = variant_size;
         this.image_url = image_url;
         this.unitPrice = unitPrice;
+        this.discount_percent = discount_percent;
+        this.final_price = final_price;
     }
 
     protected CartItem(Parcel in) {
@@ -50,6 +58,9 @@ public class CartItem implements Parcelable {
         variant_size = in.readString();
         image_url = in.readString();
         unitPrice = in.readDouble();
+        // NEW: Read discount fields
+        discount_percent = in.readDouble();
+        final_price = in.readDouble();
     }
 
     public static final Creator<CartItem> CREATOR = new Creator<CartItem>() {
@@ -144,6 +155,23 @@ public class CartItem implements Parcelable {
         this.unitPrice = unitPrice;
     }
 
+    // NEW: Getters and setters for discount fields
+    public double getDiscount_percent() {
+        return discount_percent;
+    }
+
+    public void setDiscount_percent(double discount_percent) {
+        this.discount_percent = discount_percent;
+    }
+
+    public double getFinal_price() {
+        return final_price;
+    }
+
+    public void setFinal_price(double final_price) {
+        this.final_price = final_price;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -171,5 +199,8 @@ public class CartItem implements Parcelable {
         dest.writeString(variant_size);
         dest.writeString(image_url);
         dest.writeDouble(unitPrice);
+        // NEW: Write discount fields
+        dest.writeDouble(discount_percent);
+        dest.writeDouble(final_price);
     }
 }

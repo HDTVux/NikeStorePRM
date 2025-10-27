@@ -1,4 +1,5 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -12,32 +13,32 @@
         android:textColor="@color/white"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:text="Order #1234"/>
+        tools:text="Order #1234"/>
 
     <TextView android:id="@+id/tvOrderDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/gray"
         android:textSize="12sp"
-        android:text="2025-10-21 10:20"/>
+        tools:text="2025-10-21 10:20"/>
 
     <TextView android:id="@+id/tvStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/gray"
-        android:text="Status: Pending"/>
+        tools:text="Status: Pending"/>
 
     <TextView android:id="@+id/tvTotal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/white"
-        android:text="Total: $150"/>
+        tools:text="Total: $150"/>
 
     <TextView android:id="@+id/tvPayment"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/white"
-        android:text="Payment: VNPay"/>
+        tools:text="Payment: VNPay"/>
 
     <Button
         android:id="@+id/btnReviewOrder"

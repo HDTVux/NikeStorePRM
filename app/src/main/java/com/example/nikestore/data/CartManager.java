@@ -4,7 +4,10 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import com.example.nikestore.model.ApiResponse;
 import com.example.nikestore.model.CartItem;
+import com.example.nikestore.net.RetrofitClient;
+import com.example.nikestore.util.SessionManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -15,6 +18,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class CartManager {
     private static final String PREF = "app_cart_pref";
     private static final String KEY = "cart_items_v1";
@@ -23,9 +30,13 @@ public class CartManager {
     private final Gson gson = new Gson();
     private List<CartItem> items;
     private final List<OnChangeListener> listeners = new ArrayList<>();
+    private final Context appContext;
+    private final SessionManager sessionManager;
 
     private CartManager(Context ctx) {
-        prefs = ctx.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        appContext = ctx.getApplicationContext();
+        prefs = appContext.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        sessionManager = SessionManager.getInstance(appContext);
         load();
     }
 
@@ -45,7 +56,7 @@ public class CartManager {
         else {
             Type t = new TypeToken<List<CartItem>>(){}.getType();
             try { items = gson.fromJson(raw, t); if (items == null) items = new ArrayList<>(); }
-            catch (Throwable ttt) { items = new ArrayList<>(); }
+            catch (Throwable ttt) { items = new ArrayList<>(); Log.e("CartManager", "Error loading cart: ", ttt);}
         }
     }
 
@@ -55,6 +66,12 @@ public class CartManager {
     }
 
     public interface OnChangeListener { void onCartChanged(int totalCount, double totalPrice); }
+
+    // NEW: Interface cho các hành động giỏ hàng (thêm/xóa)
+    public interface CartActionListener {
+        void onCartActionSuccess(String message);
+        void onCartActionFailure(String error);
+    }
 
     public void addListener(OnChangeListener l) {
         if (l==null) return;
@@ -75,8 +92,8 @@ public class CartManager {
         }
     }
 
-    /** Add item: if same productId+variantId exists, increase quantity (cap by maxStock if >0) */
-    public void addItem(CartItem item, int maxStock) {
+    /** Add item to local cart (without API call) */
+    private void addLocalItem(CartItem item, int maxStock) {
         if (item == null) return;
         boolean merged = false;
         for (CartItem ci : items) {
@@ -93,6 +110,45 @@ public class CartManager {
             items.add(item);
         }
         persist();
+    }
+
+    /**
+     * Add item to cart, syncs with server if user is logged in.
+     * @param ctx Context for toasts
+     * @param item The CartItem to add
+     * @param listener Callback for action result
+     */
+    public void addItemToCart(Context ctx, CartItem item, CartActionListener listener) {
+        int userId = sessionManager.getUserId();
+        if (userId <= 0) {
+            // Guest user, add locally
+            addLocalItem(item, -1); // -1 means no max stock check for guest cart currently
+            if (listener != null) listener.onCartActionSuccess("Đã thêm vào giỏ hàng (khách)");
+            return;
+        }
+
+        // Logged in user, sync with server
+        RetrofitClient.api().addToCart(userId, item.product_id, item.variant_id, item.quantity)
+                .enqueue(new Callback<ApiResponse>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                        if (response.isSuccessful() && response.body() != null && response.body().success) {
+                            // On success, add to local cart as well
+                            addLocalItem(item, -1); // Update local cart with the item
+                            if (listener != null) listener.onCartActionSuccess("Đã thêm vào giỏ hàng");
+                        } else {
+                            String errorMsg = "Không thể thêm vào giỏ hàng: " + (response.body() != null ? response.body().message : response.message());
+                            Log.e("CartManager", "API add to cart failed: " + errorMsg);
+                            if (listener != null) listener.onCartActionFailure(errorMsg);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse> call, Throwable t) {
+                        Log.e("CartManager", "Network error adding to cart: ", t);
+                        if (listener != null) listener.onCartActionFailure("Lỗi mạng khi thêm vào giỏ hàng");
+                    }
+                });
     }
 
     public void updateQuantity(int productId, int variantId, int qty) {
@@ -119,6 +175,7 @@ public class CartManager {
         }
         persist();
     }
+
     public List<Map<String, Object>> getGuestItemsForApi() {
         List<Map<String, Object>> out = new ArrayList<>();
         synchronized (items) { // items là List<CartItem> trong CartManager
@@ -151,7 +208,7 @@ public class CartManager {
 
     public double getTotalPrice() {
         double t = 0;
-        for (CartItem ci : items) t += ci.unitPrice * ci.quantity;
+        for (CartItem ci : items) t += ci.getFinal_price() * ci.quantity; // Use final_price for total calculation
         return t;
     }
 }

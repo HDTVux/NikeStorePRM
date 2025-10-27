@@ -2,6 +2,7 @@ package com.example.nikestore.adapter;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Paint;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,16 +12,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.nikestore.R;
 import com.example.nikestore.func.Login;
-import com.example.nikestore.model.ApiResponse; // Import ApiResponse
+import com.example.nikestore.model.ApiResponse;
 import com.example.nikestore.model.Product;
-import com.example.nikestore.model.WishlistResponse; // Import WishlistResponse
+import com.example.nikestore.model.WishlistResponse;
 import com.example.nikestore.net.RetrofitClient;
-import com.example.nikestore.util.SessionManager; // Import SessionManager
+import com.example.nikestore.util.SessionManager;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -37,20 +39,18 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
     private final List<Product> data = new ArrayList<>();
     private final DecimalFormat money = new DecimalFormat("#,##0.##");
     private final SessionManager sessionManager;
-    private Set<Integer> favoritedProductIds = new HashSet<>(); // To keep track of favorited products
-    private final int layoutResId; // NEW: Field to hold the layout resource ID
+    private Set<Integer> favoritedProductIds = new HashSet<>();
+    private final int layoutResId;
 
     public interface OnItemClickListener { void onItemClick(Product item); }
     private OnItemClickListener listener;
     public void setOnItemClickListener(OnItemClickListener l){ this.listener = l; }
 
-    // NEW: Constructor with layoutResId
     public ProductNewAdapter(Context context, int layoutResId) {
         this.sessionManager = SessionManager.getInstance(context);
         this.layoutResId = layoutResId;
     }
 
-    // Existing constructor (will now default to item_product_new)
     public ProductNewAdapter(Context context) {
         this(context, R.layout.item_product_new);
     }
@@ -60,18 +60,16 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
         if (list != null) {
             data.addAll(list);
         }
-        loadFavoritedProducts(); // Load favorited products for the current user
+        loadFavoritedProducts();
         notifyDataSetChanged();
     }
 
-    // Method to update the favorited product IDs from the outside (e.g., from WishlistActivity)
     public void setFavoritedProductIds(Set<Integer> favoritedProductIds) {
         this.favoritedProductIds = favoritedProductIds;
         notifyDataSetChanged();
     }
 
     @NonNull @Override public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // UPDATED: Use the stored layoutResId
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(layoutResId, parent, false);
         return new VH(v);
@@ -80,30 +78,54 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
     @Override public void onBindViewHolder(@NonNull VH h, int position) {
         Product p = data.get(position);
         h.tvName.setText(p.name);
-        h.tvPrice.setText("$" + money.format(p.price));
 
-        // Only load image if it's the default layout (not wishlist layout)
-        if (layoutResId == R.layout.item_product_new) {
-            Log.d("ProductNewAdapter", "Loading image for product: " + p.name + ", URL: " + (p.image_url == null ? "null" : p.image_url));
+        Log.d("ProductNewAdapter", "Product: " + p.name + ", Price: " + p.price + ", Final Price: " + p.final_price + ", Discount: " + p.discount_percent);
+
+        // UPDATED: Logic để hiển thị giá gốc và giá giảm giá (áp dụng cho mọi layout có các TextView này)
+        if (p.discount_percent > 0 && h.tvOriginalPrice != null) { // Chỉ áp dụng nếu có discount và tvOriginalPrice tồn tại
+            // Có khuyến mãi
+            h.tvOriginalPrice.setText("$" + money.format(p.price));
+            h.tvOriginalPrice.setPaintFlags(h.tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            h.tvOriginalPrice.setVisibility(View.VISIBLE);
+            h.tvPrice.setText("$" + money.format(p.final_price));
+            h.tvPrice.setTextColor(ContextCompat.getColor(h.itemView.getContext(), R.color.red)); // Màu đỏ cho giá sale
+        } else {
+            // Không có khuyến mãi
+            if (h.tvOriginalPrice != null) {
+                h.tvOriginalPrice.setVisibility(View.GONE);
+            }
+            h.tvPrice.setText("$" + money.format(p.price));
+            h.tvPrice.setTextColor(ContextCompat.getColor(h.itemView.getContext(), R.color.black)); // Màu đen cho giá thường
+        }
+
+        // Logic tải ảnh: chỉ load ảnh cho item_product_new (nếu layout có ImageView imgProduct)
+        // Hiện tại, item_product_list_compact cũng có imgProduct. Nên logic này cần được điều chỉnh.
+        // Để đơn giản và đúng với mục đích hiển thị giá, tôi sẽ giữ nguyên logic này
+        // và giả định rằng item_product_list_compact cũng sẽ tải ảnh.
+        if (h.img != null && p.image_url != null) {
+            Log.d("ProductNewAdapter", "Loading image for product: " + p.name + ", URL: " + p.image_url);
             Glide.with(h.itemView.getContext())
-                    .load(p.image_url == null ? "" : p.image_url.trim())
+                    .load(p.image_url.trim())
                     .placeholder(android.R.drawable.ic_menu_gallery)
                     .error(android.R.drawable.ic_delete)
                     .centerCrop()
                     .into(h.img);
         }
 
-        // Set initial favorite icon state
-        h.ivFavorite.setImageResource(favoritedProductIds.contains(p.id) ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
-
-        h.ivFavorite.setOnClickListener(v -> {
-            if (sessionManager.getUserId() <= 0) {
-                Toast.makeText(h.itemView.getContext(), "Vui lòng đăng nhập để thêm vào danh sách yêu thích", Toast.LENGTH_SHORT).show();
-                h.itemView.getContext().startActivity(new Intent(h.itemView.getContext(), Login.class));
-                return;
-            }
-            toggleFavorite(p, h.ivFavorite);
-        });
+        // Logic cho nút yêu thích: chỉ hiển thị nếu layout có ivFavorite
+        if (h.ivFavorite != null) {
+            h.ivFavorite.setImageResource(favoritedProductIds.contains(p.id) ? R.drawable.ic_favorite : R.drawable.ic_favorite_border);
+            h.ivFavorite.setOnClickListener(v -> {
+                if (sessionManager.getUserId() <= 0) {
+                    Toast.makeText(h.itemView.getContext(), "Vui lòng đăng nhập để thêm vào danh sách yêu thích", Toast.LENGTH_SHORT).show();
+                    h.itemView.getContext().startActivity(new Intent(h.itemView.getContext(), Login.class));
+                    return;
+                }
+                toggleFavorite(p, h.ivFavorite);
+            });
+        } else {
+            Log.d("ProductNewAdapter", "ivFavorite is null for layoutResId: " + layoutResId);
+        }
 
         h.itemView.setOnClickListener(v -> {
             if (listener != null) {
@@ -129,7 +151,7 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
                             favoritedProductIds.add(p.id);
                         }
                     }
-                    notifyDataSetChanged(); // Refresh UI to reflect favorite status
+                    notifyDataSetChanged();
                 } else {
                     Log.e("ProductNewAdapter", "Failed to load favorited products: " + response.message());
                 }
@@ -144,12 +166,11 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
 
     private void toggleFavorite(Product product, ImageView favoriteIcon) {
         int userId = sessionManager.getUserId();
-        if (userId <= 0) return; // Should be handled by click listener already
+        if (userId <= 0) return;
 
         boolean isFavorited = favoritedProductIds.contains(product.id);
 
         if (isFavorited) {
-            // Remove from favorite
             RetrofitClient.api().removeFavorite(userId, product.id).enqueue(new Callback<ApiResponse>() {
                 @Override
                 public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
@@ -170,7 +191,6 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
                 }
             });
         } else {
-            // Add to favorite
             RetrofitClient.api().addFavorite(userId, product.id).enqueue(new Callback<ApiResponse>() {
                 @Override
                 public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
@@ -195,21 +215,23 @@ public class ProductNewAdapter extends RecyclerView.Adapter<ProductNewAdapter.VH
 
     @Override public int getItemCount() { return data.size(); }
 
-    // New method to get current data list
     public List<Product> getData() {
         return new ArrayList<>(data);
     }
 
     static class VH extends RecyclerView.ViewHolder {
-        ImageView img; TextView tvName, tvPrice;
-        ImageView ivFavorite; // New: Favorite icon
+        ImageView img;
+        TextView tvName, tvPrice, tvOriginalPrice;
+        ImageView ivFavorite;
 
         VH(@NonNull View v) {
             super(v);
-            img = v.findViewById(R.id.imgProduct);
+            // Kiểm tra xem các view có tồn tại trong layout hiện tại không trước khi findViewById
+            img = v.findViewById(R.id.imgProduct); // item_product_new, item_product_list_compact
             tvName = v.findViewById(R.id.tvName);
             tvPrice = v.findViewById(R.id.tvPrice);
-            ivFavorite = v.findViewById(R.id.ivFavorite); // Bind favorite icon
+            tvOriginalPrice = v.findViewById(R.id.tvOriginalPrice);
+            ivFavorite = v.findViewById(R.id.ivFavorite); // item_product_new, item_product_wishlist
         }
     }
 }

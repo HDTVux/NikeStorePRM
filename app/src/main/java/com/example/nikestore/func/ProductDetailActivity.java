@@ -1,5 +1,6 @@
 package com.example.nikestore.func;
 
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -10,6 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
@@ -43,7 +45,7 @@ import retrofit2.Response;
 public class ProductDetailActivity extends BaseActivity {
     private ViewPager2 vpImages;
     private TabLayout indicator;
-    private TextView tvTitle, tvPrice, tvDescription, tvQuantity, tvTotalPrice;
+    private TextView tvTitle, tvPrice, tvOriginalPrice, tvDescription, tvQuantity, tvTotalPrice; // NEW: tvOriginalPrice
     private RecyclerView rvSizes;
     private ImageButton btnBack, btnMinus, btnPlus;
     private Button btnAddToCart;
@@ -81,6 +83,7 @@ public class ProductDetailActivity extends BaseActivity {
         indicator = findViewById(R.id.indicator);
         tvTitle = findViewById(R.id.tvTitle);
         tvPrice = findViewById(R.id.tvPrice);
+        tvOriginalPrice = findViewById(R.id.tvOriginalPrice); // NEW: Bind tvOriginalPrice
         tvDescription = findViewById(R.id.tvDescription);
         tvQuantity = findViewById(R.id.tvQuantity);
         tvTotalPrice = findViewById(R.id.tvTotalPrice);
@@ -112,18 +115,35 @@ public class ProductDetailActivity extends BaseActivity {
             int uid = sessionManager.getUserId();
             if (uid<=0) { Toast.makeText(this,"Vui lòng đăng nhập để thêm vào giỏ hàng",Toast.LENGTH_SHORT).show(); return; }
             Integer vid = selectedVariantId > 0 ? selectedVariantId : null;
-            RetrofitClient.api().addToCart(uid, current.id, vid, quantity)
-                    .enqueue(new retrofit2.Callback<com.example.nikestore.model.ApiResponse>() {
-                        @Override public void onResponse(Call<ApiResponse> c, Response<ApiResponse> r) {
-                            if (r.isSuccessful() && r.body()!=null && r.body().success) {
-                                Toast.makeText(ProductDetailActivity.this,"Đã thêm vào giỏ hàng",Toast.LENGTH_SHORT).show();
-                                // optionally update badge: broadcast or call method in HomePage via shared session or stored prefs
-                            } else {
-                                Toast.makeText(ProductDetailActivity.this,"Không thể thêm vào giỏ hàng",Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                        @Override public void onFailure(Call<com.example.nikestore.model.ApiResponse> c, Throwable t) { Toast.makeText(ProductDetailActivity.this,"Lỗi mạng",Toast.LENGTH_SHORT).show(); }
-                    });
+
+            // NEW: Sử dụng giá cuối cùng (final_price) khi thêm vào giỏ hàng nếu có khuyến mãi
+            double priceToAdd = (current != null && current.discount_percent > 0) ? current.final_price : current.price; // Use final price if discounted
+
+            CartItem newItem = new CartItem();
+            if (current != null) {
+                newItem.setProduct_id(current.id);
+                newItem.setProduct_name(current.name);
+                newItem.setImage_url(current.image_url);
+                newItem.setPrice(priceToAdd); // Price reflects discount now
+                newItem.setQuantity(quantity);
+                newItem.setVariant_id(vid);
+                newItem.setDiscount_percent(current.discount_percent);
+                newItem.setFinal_price(current.final_price);
+                // Variant size will be set by the SizeAdapter listener if a variant is selected
+            }
+
+            // Call CartManager to add item to local cart and then sync with server
+            CartManager.getInstance().addItemToCart(ProductDetailActivity.this, newItem, new CartManager.CartActionListener() {
+                @Override
+                public void onCartActionSuccess(String message) {
+                    Toast.makeText(ProductDetailActivity.this, message, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onCartActionFailure(String error) {
+                    Toast.makeText(ProductDetailActivity.this, error, Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
         // New: Favorite icon click listener
@@ -358,9 +378,23 @@ public class ProductDetailActivity extends BaseActivity {
 
     private void setupInfoFromProduct(Product p) {
         tvTitle.setText(p.name != null ? p.name : "");
-        tvPrice.setText("$" + money.format(p.price));
+
+        // NEW: Logic hiển thị giá gốc và giá khuyến mãi
+        if (p.discount_percent > 0) {
+            tvOriginalPrice.setText("$" + money.format(p.price));
+            tvOriginalPrice.setPaintFlags(tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            tvOriginalPrice.setVisibility(View.VISIBLE);
+            tvPrice.setText("$" + money.format(p.final_price));
+            tvPrice.setTextColor(ContextCompat.getColor(this, R.color.red));
+            activePrice = p.final_price;
+        } else {
+            tvOriginalPrice.setVisibility(View.GONE);
+            tvPrice.setText("$" + money.format(p.price));
+            tvPrice.setTextColor(ContextCompat.getColor(this, R.color.white)); // Màu mặc định
+            activePrice = p.price;
+        }
+
         tvDescription.setText(p.description != null ? p.description : "");
-        activePrice = p.price;
         tvQuantity.setText(String.valueOf(quantity));
         updateTotal();
     }
@@ -369,15 +403,42 @@ public class ProductDetailActivity extends BaseActivity {
         SizeAdapter sizeAdapter = new SizeAdapter(variants);
         sizeAdapter.setOnSizeSelected((variantId, sizeLabel) -> {
             selectedVariantId = variantId;
-            double newPrice = activePrice;
+            double newPrice = current != null ? current.price : 0.0; // Mặc định là giá gốc của sản phẩm chính
+
             for (ProductVariant v : variants) {
                 if (v != null && v.id == variantId) {
                     if (v.price != null) newPrice = v.price;
                     break;
                 }
             }
-            activePrice = newPrice;
-            tvPrice.setText("$" + money.format(activePrice));
+            
+            // Khi chọn size, giá hiển thị sẽ là giá của variant đó.
+            // Logic discount đã được áp dụng ở setupInfoFromProduct cho giá cơ bản của sản phẩm.
+            // Nếu có discount trên sản phẩm chính, thì final_price sẽ được sử dụng.
+            // Giá của variant sẽ không ảnh hưởng đến final_price đã tính toán ở cấp độ sản phẩm chính.
+            // Chúng ta cần đảm bảo activePrice luôn là giá sẽ được dùng để tính tổng cuối cùng.
+            // Ở đây, tôi sẽ đơn giản hóa bằng cách chỉ cập nhật activePrice dựa trên giá variant.
+            // Nếu bạn muốn khuyến mãi cũng áp dụng trên từng variant, logic sẽ phức tạp hơn.
+            // Để giữ logic hiện tại: giá variant thay đổi base price, sau đó discount nếu có sẽ áp dụng.
+
+            activePrice = newPrice; // Update activePrice based on selected variant price
+
+            // NEW: Cập nhật lại hiển thị giá sau khi chọn variant
+            if (current != null && current.discount_percent > 0) {
+                // Nếu sản phẩm có khuyến mãi, giá của variant không thay đổi giá hiển thị đã giảm
+                tvOriginalPrice.setText("$" + money.format(activePrice));
+                tvOriginalPrice.setPaintFlags(tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+                tvOriginalPrice.setVisibility(View.VISIBLE);
+                tvPrice.setText("$" + money.format(current.final_price)); // Vẫn hiển thị final_price của sản phẩm chính
+                tvPrice.setTextColor(ContextCompat.getColor(this, R.color.red));
+                activePrice = current.final_price; // activePrice vẫn là giá cuối cùng đã giảm
+            } else {
+                tvOriginalPrice.setVisibility(View.GONE);
+                tvPrice.setText("$" + money.format(activePrice));
+                tvPrice.setTextColor(ContextCompat.getColor(this, R.color.white));
+                activePrice = newPrice;
+            }
+
             updateTotal();
         });
 

@@ -16,7 +16,8 @@
         android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent" 
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Order #12345" />
 
     <TextView
         android:id="@+id/tvStatus"
@@ -26,7 +27,8 @@
         android:text="Status: Processing"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent" 
-        app:layout_constraintTop_toBottomOf="@id/tvOrderId" />
+        app:layout_constraintTop_toBottomOf="@id/tvOrderId"
+        tools:text="Status: Completed" />
 
     <TextView
         android:id="@+id/tvTotal"
@@ -36,7 +38,8 @@
         android:text="Total: $0.00"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent" 
-        app:layout_constraintTop_toBottomOf="@id/tvStatus" />
+        app:layout_constraintTop_toBottomOf="@id/tvStatus"
+        tools:text="Total: $260.00" />
 
     <TextView
         android:id="@+id/tvPayment"
@@ -46,7 +49,8 @@
         android:text="Payment: Credit Card"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent" 
-        app:layout_constraintTop_toBottomOf="@id/tvTotal" />
+        app:layout_constraintTop_toBottomOf="@id/tvTotal"
+        tools:text="Payment: VNPay" />
 
     <TextView
         android:id="@+id/tvAddress"
@@ -56,7 +60,8 @@
         android:text="Address: 123 Main St"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent" 
-        app:layout_constraintTop_toBottomOf="@id/tvPayment" />
+        app:layout_constraintTop_toBottomOf="@id/tvPayment"
+        tools:text="Address: 123 Main St, Anytown, USA" />
 
     <TextView
         android:id="@+id/tvPhone"
@@ -66,7 +71,8 @@
         android:text="Phone: (123) 456-7890"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent" 
-        app:layout_constraintTop_toBottomOf="@id/tvAddress" />
+        app:layout_constraintTop_toBottomOf="@id/tvAddress"
+        tools:text="Phone: (555) 123-4567" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvItems"
@@ -76,6 +82,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" 
-        app:layout_constraintTop_toBottomOf="@id/tvPhone" />
+        app:layout_constraintTop_toBottomOf="@id/tvPhone"
+        tools:listitem="@layout/item_order_item" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
