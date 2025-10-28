@@ -9,7 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.util.concurrent.TimeUnit;
 
 public class RetrofitClient {
-    private static final String BASE_URL = "http://10.33.66.88/api/project/";
+    private static final String BASE_URL = "https://acrimoniously-nonpreservable-maison.ngrok-free.dev/api/project/";
     private static Retrofit retrofit;
 
     public static Retrofit getInstance() {
@@ -35,7 +35,7 @@ public class RetrofitClient {
     }
     public static String getImageBaseUrl() {
         // Nếu ảnh trên server ở root /uploads/, trả host root
-        return "http://10.33.66.88/"; // <-- chỉnh cho khớp nơi serve uploads/
+        return "https://acrimoniously-nonpreservable-maison.ngrok-free.dev/"; // <-- chỉnh cho khớp nơi serve uploads/
     }
 
     public static ApiService api() {

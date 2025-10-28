@@ -3,13 +3,11 @@ package com.example.nikestore.adapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.example.nikestore.R;
 import com.example.nikestore.model.Category; // We'll create simple Category model
 
@@ -38,12 +36,6 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.VH> {
     public void onBindViewHolder(@NonNull VH h, int pos) {
         final Category c = data.get(pos);
         h.tvName.setText(c.getName());
-        // optional icon URL
-        if (c.getIconUrl() != null && !c.getIconUrl().isEmpty()) {
-            Glide.with(h.img.getContext()).load(c.getIconUrl()).into(h.img);
-        } else {
-            h.img.setImageResource(R.drawable.ic_category_placeholder);
-        }
         h.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onClick(c);
         });
@@ -52,10 +44,9 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.VH> {
     @Override public int getItemCount() { return data.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
-        ImageView img; TextView tvName;
+        TextView tvName;
         VH(@NonNull View v) {
             super(v);
-            img = v.findViewById(R.id.imgCategory);
             tvName = v.findViewById(R.id.tvCategoryName);
         }
     }

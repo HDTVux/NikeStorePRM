@@ -20,4 +20,20 @@
         android:background="?android:attr/windowBackground"
         app:menu="@menu/bottom_nav_menu" />
 
+    <!-- NEW: Floating Action Button for Smart Suggestion -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_smart_suggestion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/bottom_nav_view"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:backgroundTint="@color/black"
+        app:tint="@android:color/white"
+        app:srcCompat="@drawable/ic_lightbulb_outline"
+        app:fabSize="normal" /> <!-- Hoặc một màu khác phù hợp với theme của bạn -->
+
 </RelativeLayout>

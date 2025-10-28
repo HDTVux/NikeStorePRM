@@ -11,7 +11,7 @@ import android.view.View;
 import android.widget.*;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.browser.customtabs.CustomTabsIntent;
+// import androidx.browser.customtabs.CustomTabsIntent; // Không còn cần thiết
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.nikestore.R;
@@ -100,33 +100,66 @@ public class CheckoutActivity extends AppCompatActivity {
         btnPay.setOnClickListener(v -> onPayClicked());
     }
 
-    // --- CÁC PHƯƠNG THỨC onNewIntent, checkOrderWithPolling GIỮ NGUYÊN ---
+    // --- XÓA PHƯƠNG THỨC onNewIntent (đã chuyển logic sang onActivityResult) ---
+    // @Override
+    // protected void onNewIntent(Intent intent) {
+    //     super.onNewIntent(intent);
+    //     Uri data = intent.getData();
+    //     if (data != null && "app".equals(data.getScheme()) && "vnpay-return".equals(data.getHost())) {
+    //         Log.d(TAG, "DeepLink URI: " + data.toString()); // Changed Log.d tag
+    //         String txnRef = data.getQueryParameter("vnp_TxnRef");
+    //         int orderId = -1;
+    //         if (txnRef != null) {
+    //             try {
+    //                 orderId = Integer.parseInt(txnRef.split("_")[0]);
+    //             } catch (Exception ex) {
+    //                 orderId = -1;
+    //             }
+    //         }
+    //         if (orderId <= 0 && currentVnPayOrderId != null) {
+    //             orderId = currentVnPayOrderId;
+    //         }
+    //         if (orderId <= 0) {
+    //             Toast.makeText(this, "Không có thông tin thanh toán", Toast.LENGTH_SHORT).show();
+    //             return;
+    //         }
+    //         checkOrderWithPolling(orderId);
+    //     }
+    // }
+
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        Uri data = intent.getData();
-        if (data != null && "app".equals(data.getScheme()) && "vnpay-return".equals(data.getHost())) {
-            Log.d(TAG, "DeepLink URI: " + data.toString()); // Changed Log.d tag
-            String txnRef = data.getQueryParameter("vnp_TxnRef");
-            int orderId = -1;
-            if (txnRef != null) {
-                try {
-                    orderId = Integer.parseInt(txnRef.split("_")[0]);
-                } catch (Exception ex) {
-                    orderId = -1;
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == CHECKOUT_REQUEST_CODE) {
+            if (resultCode == RESULT_OK && data != null) {
+                Uri uri = data.getData();
+                if (uri != null && "app".equals(uri.getScheme()) && "vnpay-return".equals(uri.getHost())) {
+                    Log.d(TAG, "DeepLink URI from WebView: " + uri.toString());
+                    String txnRef = uri.getQueryParameter("vnp_TxnRef");
+                    int orderId = -1;
+                    if (txnRef != null) {
+                        try {
+                            orderId = Integer.parseInt(txnRef.split("_")[0]);
+                        } catch (Exception ex) {
+                            orderId = -1;
+                        }
+                    }
+                    if (orderId <= 0 && currentVnPayOrderId != null) {
+                        orderId = currentVnPayOrderId;
+                    }
+                    if (orderId <= 0) {
+                        Toast.makeText(this, "Không có thông tin thanh toán", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    checkOrderWithPolling(orderId);
                 }
+            } else {
+                // Xử lý khi WebViewActivity đóng mà không có kết quả OK (ví dụ: người dùng nhấn Back)
+                Toast.makeText(this, "Thanh toán VNPay bị hủy hoặc không thành công.", Toast.LENGTH_SHORT).show();
             }
-            if (orderId <= 0 && currentVnPayOrderId != null) {
-                orderId = currentVnPayOrderId;
-            }
-            if (orderId <= 0) {
-                Toast.makeText(this, "Không có thông tin thanh toán", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            checkOrderWithPolling(orderId);
         }
     }
-    
+
     private void checkOrderWithPolling(int orderId) {
         final int MAX_ATTEMPTS = 8;
         final int INTERVAL_MS = 3000;
@@ -173,7 +206,7 @@ public class CheckoutActivity extends AppCompatActivity {
         };
         handler.post(runnableHolder[0]);
     }
-    
+
     private void recalcTotals(List<CartItem> items) {
         subtotal = 0;
         Log.d(TAG, "recalcTotals: Starting calculation");
@@ -191,7 +224,6 @@ public class CheckoutActivity extends AppCompatActivity {
         tvShipping.setText(String.format(Locale.US, "Shipping: $%.2f", shippingFee));
         tvTotal.setText(String.format(Locale.US, "Total: $%.2f", total));
     }
-    // --- KẾT THÚC PHẦN GIỮ NGUYÊN ---
 
     private void onPayClicked() {
         if (cartItems.isEmpty()) {
@@ -282,11 +314,11 @@ public class CheckoutActivity extends AppCompatActivity {
                         String url = response.body().payment_url;
                         int returnedOrderId = response.body().order_id;
                         currentVnPayOrderId = returnedOrderId;
-                        checkOrderWithPolling(returnedOrderId);
+                        // Thay vì CustomTabsIntent, khởi chạy VnPayWebViewActivity
                         if (!TextUtils.isEmpty(url)) {
-                            CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
-                            CustomTabsIntent customTabsIntent = builder.build();
-                            customTabsIntent.launchUrl(CheckoutActivity.this, Uri.parse(url));
+                            Intent webViewIntent = new Intent(CheckoutActivity.this, VnPayWebViewActivity.class);
+                            webViewIntent.putExtra(VnPayWebViewActivity.EXTRA_VNPAY_URL, url);
+                            startActivityForResult(webViewIntent, CHECKOUT_REQUEST_CODE);
                         } else {
                             Toast.makeText(CheckoutActivity.this, "URL VNPay rỗng", Toast.LENGTH_SHORT).show();
                         }

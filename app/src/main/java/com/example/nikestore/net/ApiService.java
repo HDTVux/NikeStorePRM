@@ -14,6 +14,7 @@ import com.example.nikestore.model.SubmitReviewRequest;
 import com.example.nikestore.model.UserResponse;
 import com.example.nikestore.model.WishlistResponse;
 import com.example.nikestore.model.PromotionResponse; // NEW: Import PromotionResponse
+import com.example.nikestore.model.SmartSuggestionResponse; // NEW: Import SmartSuggestionResponse
 
 import java.util.Map;
 
@@ -200,6 +201,10 @@ public interface ApiService {
     // NEW: Get Active Promotions
     @GET("api.php?action=get_promotions")
     Call<PromotionResponse> getPromotions();
+
+    // NEW: Get Smart Suggestions from Gemini API
+    @POST("suggestions_gemini.php") // Đã sửa đường dẫn thành tên file chính xác
+    Call<SmartSuggestionResponse> getSmartSuggestions(@Body Map<String, String> body);
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {

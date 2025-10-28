@@ -13,11 +13,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.nikestore.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton; // NEW: Import FAB class
 
 public abstract class BaseActivity extends AppCompatActivity {
 
     protected BottomNavigationView bottomNavView;
     private FrameLayout containerMainContent;
+    private FloatingActionButton fabSmartSuggestion; // NEW: Declare FAB
 
     protected abstract int getNavigationMenuItemId();
 
@@ -28,6 +30,16 @@ public abstract class BaseActivity extends AppCompatActivity {
         setContentView(R.layout.activity_base_with_nav);
         containerMainContent = findViewById(R.id.container_main_content);
         setupBottomNav();
+
+        // NEW: Initialize and set OnClickListener for FAB
+        fabSmartSuggestion = findViewById(R.id.fab_smart_suggestion);
+        if (fabSmartSuggestion != null) {
+            fabSmartSuggestion.setOnClickListener(v -> {
+                Intent intent = new Intent(this, SmartSuggestionActivity.class);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            });
+        }
     }
 
     // Override setContentView methods to inflate child activity's layout into the FrameLayout
@@ -85,7 +97,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 intent = new Intent(this, HomePage.class); 
             } else if (itemId == R.id.nav_cart) {
                 intent = new Intent(this, CartActivity.class);
-            } else if (itemId == R.id.nav_wishlist) { // NEW: Handle Wishlist navigation
+            } else if (itemId == R.id.nav_wishlist) { // Handle Wishlist navigation
                 intent = new Intent(this, WishlistActivity.class);
             } else if (itemId == R.id.nav_orders) {
                  intent = new Intent(this, OrderHistoryActivity.class); 
