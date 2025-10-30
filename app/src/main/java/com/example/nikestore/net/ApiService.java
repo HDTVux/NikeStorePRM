@@ -16,6 +16,11 @@ import com.example.nikestore.model.WishlistResponse;
 import com.example.nikestore.model.PromotionResponse; // NEW: Import PromotionResponse
 import com.example.nikestore.model.SmartSuggestionResponse; // NEW: Import SmartSuggestionResponse
 
+// NEW: Chat models
+import com.example.nikestore.model.ChatResponse;
+import com.example.nikestore.model.MessageListResponse;
+import com.example.nikestore.model.UserChatListResponse;
+
 import java.util.Map;
 
 import retrofit2.Call;
@@ -205,6 +210,36 @@ public interface ApiService {
     // NEW: Get Smart Suggestions from Gemini API
     @POST("suggestions_gemini.php") // Đã sửa đường dẫn thành tên file chính xác
     Call<SmartSuggestionResponse> getSmartSuggestions(@Body Map<String, String> body);
+
+    // ================== CHAT FUNCTIONS ==================
+    // NEW: Create a new chat or get existing one
+    @FormUrlEncoded
+    @POST("api.php?action=create_chat")
+    Call<ChatResponse> createChat(@Field("user_id") int userId);
+
+    // NEW: Send a message
+    @FormUrlEncoded
+    @POST("api.php?action=send_message")
+    Call<ApiResponse> sendMessage(
+            @Field("chat_id") int chatId,
+            @Field("sender_id") int senderId,
+            @Field("is_admin") boolean isAdmin,
+            @Field("message") String message
+    );
+
+    // NEW: Get messages for a chat
+    @GET("api.php?action=get_messages")
+    Call<MessageListResponse> getMessages(@Query("chat_id") int chatId);
+
+    // NEW: Get user's chat history (list of chats)
+    @GET("api.php?action=get_user_chats")
+    Call<UserChatListResponse> getUserChats(@Query("user_id") int userId);
+
+    // NEW: Close a chat
+    @FormUrlEncoded
+    @POST("api.php?action=close_chat")
+    Call<ApiResponse> closeChat(@Field("chat_id") int chatId);
+
 
     // Convenience overloads
     default Call<NewProductsResponse> getProductsByCategoryDefault(int categoryId) {

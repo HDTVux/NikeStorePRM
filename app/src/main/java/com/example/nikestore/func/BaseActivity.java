@@ -13,13 +13,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.nikestore.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
-import com.google.android.material.floatingactionbutton.FloatingActionButton; // NEW: Import FAB class
+import com.google.android.material.floatingactionbutton.FloatingActionButton; // Import FloatingActionButton
 
 public abstract class BaseActivity extends AppCompatActivity {
 
     protected BottomNavigationView bottomNavView;
     private FrameLayout containerMainContent;
-    private FloatingActionButton fabSmartSuggestion; // NEW: Declare FAB
+
+    // Declare Floating Action Buttons for AI and Chat
+    private FloatingActionButton fabAi;
+    private FloatingActionButton fabChat;
 
     protected abstract int getNavigationMenuItemId();
 
@@ -31,11 +34,23 @@ public abstract class BaseActivity extends AppCompatActivity {
         containerMainContent = findViewById(R.id.container_main_content);
         setupBottomNav();
 
-        // NEW: Initialize and set OnClickListener for FAB
-        fabSmartSuggestion = findViewById(R.id.fab_smart_suggestion);
-        if (fabSmartSuggestion != null) {
-            fabSmartSuggestion.setOnClickListener(v -> {
-                Intent intent = new Intent(this, SmartSuggestionActivity.class);
+        // Initialize Floating Action Button for AI
+        fabAi = findViewById(R.id.fab_ai);
+        if (fabAi != null) {
+            fabAi.setOnClickListener(v -> {
+                // Start SmartSuggestionActivity when AI FAB is clicked
+                Intent intent = new Intent(BaseActivity.this, SmartSuggestionActivity.class);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            });
+        }
+
+        // Initialize Floating Action Button for Chat
+        fabChat = findViewById(R.id.fab_chat);
+        if (fabChat != null) {
+            fabChat.setOnClickListener(v -> {
+                // Start ChatActivity when Chat FAB is clicked
+                Intent intent = new Intent(BaseActivity.this, ChatActivity.class);
                 startActivity(intent);
                 overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             });

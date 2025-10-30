@@ -82,21 +82,26 @@
         <activity
             android:name="com.example.nikestore.func.ProfileActivity"
             android:exported="false" />
-        <!-- NEW: Declare WishlistActivity -->
+        <!-- Declare WishlistActivity -->
         <activity
             android:name="com.example.nikestore.func.WishlistActivity"
             android:exported="false" />
 
-        <!-- NEW: Declare VnPayWebViewActivity -->
+        <!-- Declare VnPayWebViewActivity -->
         <activity
             android:name=".func.VnPayWebViewActivity"
             android:exported="false"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- NEW: Declare SmartSuggestionActivity -->
+        <!-- Declare SmartSuggestionActivity -->
         <activity
             android:name=".func.SmartSuggestionActivity"
+            android:exported="false" />
+
+        <!-- NEW: Declare ChatActivity -->
+        <activity
+            android:name="com.example.nikestore.func.ChatActivity"
             android:exported="false" />
 
     </application>

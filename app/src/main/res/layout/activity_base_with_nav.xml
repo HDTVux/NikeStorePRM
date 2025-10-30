@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools" 
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -20,20 +21,34 @@
         android:background="?android:attr/windowBackground"
         app:menu="@menu/bottom_nav_menu" />
 
-    <!-- NEW: Floating Action Button for Smart Suggestion -->
+    <!-- Floating Action Button for Chat (Hỗ Trợ) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_smart_suggestion"
+        android:id="@+id/fab_chat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_above="@id/bottom_nav_view"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:backgroundTint="@color/black"
+        android:src="@drawable/ic_chat_24dp"
         app:tint="@android:color/white"
-        app:srcCompat="@drawable/ic_lightbulb_outline"
-        app:fabSize="normal" /> <!-- Hoặc một màu khác phù hợp với theme của bạn -->
+        app:backgroundTint="#00897B"
+        app:fabSize="normal"
+        android:contentDescription="Chat hỗ trợ" />
+
+    <!-- Floating Action Button for AI (Hỏi AI) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_ai"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/fab_chat"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_lightbulb_24dp"
+        app:tint="@android:color/white"
+        app:backgroundTint="@color/black"
+        app:fabSize="normal"
+        android:contentDescription="Hỏi AI" />
 
 </RelativeLayout>
