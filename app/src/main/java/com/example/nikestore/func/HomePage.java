@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout; // Import SwipeRefreshLayout
 import com.example.nikestore.R;
 import com.example.nikestore.adapter.BannerAdapter;
 import com.example.nikestore.adapter.CategoryAdapter;
@@ -33,7 +34,6 @@ import retrofit2.Response;
 
 public class HomePage extends BaseActivity {
 
-    // ... (Your existing member variables)
     private ViewPager2 viewPagerSlider;
     private RecyclerView rvCategories;
     private CategoryAdapter categoryAdapter;
@@ -42,21 +42,23 @@ public class HomePage extends BaseActivity {
     private ImageButton btnCart;
     private TextView tvCartBadge;
     private SessionManager session;
+    private SwipeRefreshLayout swipeRefreshLayout; // NEW: Declare SwipeRefreshLayout
+
+    // NEW: Counter for pending API requests to manage SwipeRefreshLayout
+    private int pendingApiRequests = 0;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_page);
         
-        // This will set up the listeners for the new BottomNavigationView
         setupBottomNav();
 
         EditText edtSearch = findViewById(R.id.edtSearch);
         session = new SessionManager(this);
 
-        // The old cart button in the header might be redundant now, but we keep its logic
         btnCart = findViewById(R.id.btnCart);
-        tvCartBadge = findViewById(R.id.tvCartBadge); // This is also likely in the header
+        tvCartBadge = findViewById(R.id.tvCartBadge);
 
         if (btnCart != null) {
             btnCart.setOnClickListener(v -> {
@@ -71,7 +73,6 @@ public class HomePage extends BaseActivity {
             });
         }
 
-        // ----- Banner, Categories, New Releases Setup (Your existing code) -----
         viewPagerSlider = findViewById(R.id.viewPagerSlider);
         if (viewPagerSlider != null) {
             viewPagerSlider.setAdapter(new BannerAdapter(new ArrayList<>()));
@@ -103,14 +104,19 @@ public class HomePage extends BaseActivity {
             rvNewProducts.setHasFixedSize(true);
         }
 
-        // Load data
-        loadBanners();
-        loadCategories();
-        loadNewProducts();
-        updateCartBadgeFromServer();
+        // NEW: Initialize SwipeRefreshLayout and set its listener
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setOnRefreshListener(() -> {
+                // When user pulls to refresh, reload all data
+                loadAllData();
+            });
+        }
+
+        // Load data initially
+        loadAllData();
     }
 
-    // IMPLEMENT THE REQUIRED METHOD FROM BASEACTIVITY
     @Override
     protected int getNavigationMenuItemId() {
         return R.id.nav_home;
@@ -122,7 +128,27 @@ public class HomePage extends BaseActivity {
         updateCartBadgeFromServer();
     }
 
-    // Renamed to avoid confusion with the new updateCartBadge(int) in BaseActivity
+    private void loadAllData() {
+        pendingApiRequests = 3; // We have 3 API calls: banners, categories, new products
+        // Ensure refresh indicator is visible when initiating refresh via code
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setRefreshing(true);
+        }
+        loadBanners();
+        loadCategories();
+        loadNewProducts();
+        updateCartBadgeFromServer(); // Also update cart badge
+    }
+
+    private void checkAndStopRefreshing() {
+        pendingApiRequests--;
+        if (pendingApiRequests <= 0) {
+            if (swipeRefreshLayout != null) {
+                swipeRefreshLayout.setRefreshing(false);
+            }
+        }
+    }
+
     private void updateCartBadgeFromServer() {
         int uid = session != null ? session.getUserId() : 0;
         if (uid <= 0) {
@@ -141,7 +167,7 @@ public class HomePage extends BaseActivity {
                 final int finalCount = count;
                 runOnUiThread(() -> {
                     updateCartBadge(finalCount); // Update bottom nav badge
-                    if (tvCartBadge == null) return; // Update header badge (optional)
+                    if (tvCartBadge == null) return;
                     if (finalCount <= 0) {
                         tvCartBadge.setVisibility(View.GONE);
                     } else {
@@ -158,7 +184,6 @@ public class HomePage extends BaseActivity {
         });
     }
 
-    // ... (Your loadBanners, loadCategories, loadNewProducts methods remain unchanged)
     private void loadBanners() {
         RetrofitClient.api().getBanners().enqueue(new Callback<BannerResponse>() {
             @Override
@@ -166,10 +191,12 @@ public class HomePage extends BaseActivity {
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
                     if (viewPagerSlider != null) viewPagerSlider.setAdapter(new BannerAdapter(response.body().banners));
                 }
+                checkAndStopRefreshing(); // Call to check and potentially stop refreshing
             }
             @Override
             public void onFailure(Call<BannerResponse> call, Throwable t) {
                 Log.e("BANNER", "Error: " + t.getMessage(), t);
+                checkAndStopRefreshing(); // Call to check and potentially stop refreshing even on failure
             }
         });
     }
@@ -180,10 +207,12 @@ public class HomePage extends BaseActivity {
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
                     categoryAdapter.submitList(response.body().data);
                 }
+                checkAndStopRefreshing(); // Call to check and potentially stop refreshing
             }
             @Override
             public void onFailure(Call<CategoriesResponse> call, Throwable t) {
                 Log.e("CATEGORIES", "Network error: " + t.getMessage(), t);
+                checkAndStopRefreshing(); // Call to check and potentially stop refreshing even on failure
             }
         });
     }
@@ -194,10 +223,12 @@ public class HomePage extends BaseActivity {
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
                     newAdapter.submit(response.body().products);
                 }
+                checkAndStopRefreshing(); // Call to check and potentially stop refreshing
             }
             @Override
             public void onFailure(Call<NewProductsResponse> call, Throwable t) {
                 Log.e("NEW_PRODUCTS", "Network error: " + t.getMessage(), t);
+                checkAndStopRefreshing(); // Call to check and potentially stop refreshing even on failure
             }
         });
     }

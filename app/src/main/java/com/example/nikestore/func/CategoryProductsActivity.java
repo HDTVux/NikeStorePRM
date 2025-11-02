@@ -10,18 +10,19 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout; // Import SwipeRefreshLayout
 
 import com.example.nikestore.R;
 import com.example.nikestore.adapter.ProductNewAdapter;
 import com.example.nikestore.model.NewProductsResponse;
 import com.example.nikestore.model.Product;
-import com.example.nikestore.model.PromotionResponse; // NEW: Import PromotionResponse
+import com.example.nikestore.model.PromotionResponse;
 import com.example.nikestore.net.RetrofitClient;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch; // NEW: Import CountDownLatch
-import java.util.concurrent.TimeUnit; // NEW: Import TimeUnit
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -36,50 +37,54 @@ public class CategoryProductsActivity extends BaseActivity {
     private int categoryId;
     private String categoryName;
     private TextView tvEmpty;
-    private List<Product> currentProducts = new ArrayList<>(); // NEW: To hold products from API
-    private List<Product> currentPromotions = new ArrayList<>(); // NEW: To hold promotions from API
+    private SwipeRefreshLayout swipeRefreshLayout; // NEW: Declare SwipeRefreshLayout
+    private List<Product> currentProducts = new ArrayList<>();
+    private List<Product> currentPromotions = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_category_products);
 
-        // BIND VIEWS
         rvProducts = findViewById(R.id.rvCategoryProducts);
         tvEmpty = findViewById(R.id.tvEmptyCategory);
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout); // NEW: Initialize SwipeRefreshLayout
 
-        // INIT ADAPTER + LAYOUTMANAGER BEFORE ANY submit(...) CALL
         adapter = new ProductNewAdapter(this);
-        try {
-            adapter.setOnItemClickListener(item -> {
-                Log.d("PRODUCT_CLICK", "CategoryProducts -> open product id=" + item.id);
-                Intent i = new Intent(CategoryProductsActivity.this, com.example.nikestore.func.ProductDetailActivity.class);
-                i.putExtra("product_id", item.id);
-                startActivity(i);
-            });
-        } catch (Throwable ignore) {  }
+        adapter.setOnItemClickListener(item -> {
+            Intent i = new Intent(CategoryProductsActivity.this, com.example.nikestore.func.ProductDetailActivity.class);
+            i.putExtra("product_id", item.id);
+            startActivity(i);
+        });
 
         rvProducts.setLayoutManager(new GridLayoutManager(this, 2));
         rvProducts.setAdapter(adapter);
 
-        // Read extras
         categoryId = getIntent().getIntExtra(EXTRA_CAT_ID, 0);
         categoryName = getIntent().getStringExtra(EXTRA_CAT_NAME);
         setTitle(categoryName != null ? categoryName : "Products");
 
-        // Load real data
+        // NEW: Set up SwipeRefreshLayout listener
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setOnRefreshListener(this::loadCategoryProducts);
+        }
+
         loadCategoryProducts();
     }
 
     @Override
     protected int getNavigationMenuItemId() {
-        return 0; // CategoryProductsActivity is not a top-level navigation destination
+        return 0;
     }
 
-    private void loadCategoryProducts(){
-        final CountDownLatch latch = new CountDownLatch(2); // Wait for 2 API calls
+    private void loadCategoryProducts() {
+        // Ensure refresh indicator is visible when initiating refresh
+        if (swipeRefreshLayout != null && !swipeRefreshLayout.isRefreshing()) {
+            swipeRefreshLayout.setRefreshing(true);
+        }
 
-        // --- Call 1: Get Products by Category ---
+        final CountDownLatch latch = new CountDownLatch(2);
+
         Call<NewProductsResponse> productsCall = RetrofitClient.api().getProductsByCategory(categoryId, 1, 50, "newest");
         productsCall.enqueue(new Callback<NewProductsResponse>() {
             @Override
@@ -99,7 +104,6 @@ public class CategoryProductsActivity extends BaseActivity {
             }
         });
 
-        // --- Call 2: Get Promotions ---
         Call<PromotionResponse> promotionsCall = RetrofitClient.api().getPromotions();
         promotionsCall.enqueue(new Callback<PromotionResponse>() {
             @Override
@@ -119,21 +123,20 @@ public class CategoryProductsActivity extends BaseActivity {
             }
         });
 
-        // --- Wait for both calls to complete ---
         new Thread(() -> {
             try {
-                latch.await(10, TimeUnit.SECONDS); // Wait for a maximum of 10 seconds
+                latch.await(10, TimeUnit.SECONDS);
                 runOnUiThread(() -> {
-                    // Apply promotions and update UI on the main thread
                     applyPromotionsToProducts(currentProducts, currentPromotions);
                     adapter.submit(currentProducts);
 
                     if (tvEmpty != null) {
                         tvEmpty.setVisibility(currentProducts.isEmpty() ? View.VISIBLE : View.GONE);
                         rvProducts.setVisibility(currentProducts.isEmpty() ? View.GONE : View.VISIBLE);
-                        if (currentProducts.isEmpty()) {
-                            tvEmpty.setText("Không có sản phẩm nào trong danh mục này.");
-                        }
+                    }
+                    // NEW: Stop refreshing after UI update
+                    if (swipeRefreshLayout != null) {
+                        swipeRefreshLayout.setRefreshing(false);
                     }
                 });
             } catch (InterruptedException e) {
@@ -142,23 +145,24 @@ public class CategoryProductsActivity extends BaseActivity {
                     Toast.makeText(CategoryProductsActivity.this, "Lỗi tải dữ liệu", Toast.LENGTH_SHORT).show();
                     if (adapter != null) adapter.submit(new ArrayList<>());
                     if (tvEmpty != null) tvEmpty.setVisibility(View.VISIBLE);
+                    // NEW: Stop refreshing on error
+                    if (swipeRefreshLayout != null) {
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
                 });
             }
         }).start();
     }
 
-    // NEW: Method to apply promotion data to products
     private void applyPromotionsToProducts(List<Product> products, List<Product> promotions) {
         for (Product product : products) {
             for (Product promo : promotions) {
                 if (product.id == promo.product_id) {
                     product.discount_percent = promo.discount_percent;
                     product.final_price = promo.final_price;
-                    // Optionally, you might want to break here if each product only has one active promotion
                     break;
                 }
             }
         }
     }
-
 }

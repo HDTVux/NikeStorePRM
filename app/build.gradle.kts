@@ -50,6 +50,7 @@ dependencies {
     implementation("androidx.activity:activity:1.9.2")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.browser:browser:1.8.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") // NEW: SwipeRefreshLayout dependency
 
     // TEST
     testImplementation("junit:junit:4.13.2")

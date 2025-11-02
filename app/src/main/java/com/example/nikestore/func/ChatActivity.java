@@ -1,6 +1,8 @@
 package com.example.nikestore.func;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -36,151 +38,164 @@ public class ChatActivity extends AppCompatActivity {
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
 
-    private int currentChatId = -1; // -1 indicates no active chat
+    private int currentChatId = -1;
     private SessionManager sessionManager;
     private ApiService apiService;
-    private int userId; // Current logged-in user ID
+    private int userId;
+
+    // --- MỚI: Thêm Handler để tự động làm mới ---
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable refreshMessagesRunnable;
+    private static final long REFRESH_INTERVAL = 5000; // 5 giây
+    private boolean isActivityVisible = false;
+    // ---------------------------------------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
-        // Initialize views
         recyclerView = findViewById(R.id.chatRecyclerView);
         messageEditText = findViewById(R.id.messageEditText);
         sendMessageButton = findViewById(R.id.sendMessageButton);
 
-        // Initialize SessionManager and ApiService
         sessionManager = SessionManager.getInstance(this);
         apiService = RetrofitClient.api();
 
-        // Get current user ID
         userId = sessionManager.getUserId();
         if (userId <= 0) {
             Toast.makeText(this, "Vui lòng đăng nhập để chat.", Toast.LENGTH_LONG).show();
-            finish(); // Close chat if not logged in
+            finish();
             return;
         }
 
-        // Setup RecyclerView
         messageList = new ArrayList<>();
-        chatAdapter = new ChatAdapter(messageList, userId); // Pass current user ID for message alignment
+        chatAdapter = new ChatAdapter(messageList, userId);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(chatAdapter);
 
-        // Setup send message button
-        sendMessageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sendMessage();
-            }
-        });
+        sendMessageButton.setOnClickListener(v -> sendMessage());
 
-        // Start or load chat
         createOrLoadChat();
+
+        // --- MỚI: Khởi tạo Runnable để làm mới tin nhắn ---
+        setupAutoRefresh();
+        // ----------------------------------------------------
+    }
+
+    // --- MỚI: Quản lý vòng đời để bắt đầu/dừng làm mới ---
+    @Override
+    protected void onStart() {
+        super.onStart();
+        isActivityVisible = true;
+        // Bắt đầu làm mới khi Activity hiển thị
+        handler.post(refreshMessagesRunnable);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        isActivityVisible = false;
+        // Dừng làm mới khi Activity không còn hiển thị để tiết kiệm pin
+        handler.removeCallbacks(refreshMessagesRunnable);
+    }
+    // ---------------------------------------------------------
+
+    private void setupAutoRefresh() {
+        refreshMessagesRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // Chỉ chạy nếu Activity đang hiển thị
+                if (isActivityVisible) {
+                    Log.d("ChatActivity", "Tự động làm mới tin nhắn...");
+                    loadMessages(); // Gọi hàm tải tin nhắn
+                    // Lên lịch chạy lại sau khoảng thời gian REFRESH_INTERVAL
+                    handler.postDelayed(this, REFRESH_INTERVAL);
+                }
+            }
+        };
     }
 
     private void createOrLoadChat() {
-        apiService.createChat(userId).enqueue(new Callback<ChatResponse>() { // Assuming a ChatResponse model for create_chat
+        apiService.createChat(userId).enqueue(new Callback<ChatResponse>() {
             @Override
             public void onResponse(Call<ChatResponse> call, Response<ChatResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
                     currentChatId = response.body().chat_id;
                     Log.d("ChatActivity", "Chat ID: " + currentChatId + ", Message: " + response.body().message);
-                    loadMessages(); // Load existing messages for this chat
+                    loadMessages(); // Tải tin nhắn lần đầu
                 } else {
-                    Toast.makeText(ChatActivity.this, "Không thể tạo/tải cuộc trò chuyện: " + (response.body() != null ? response.body().message : response.message()), Toast.LENGTH_LONG).show();
-                    Log.e("ChatActivity", "Error creating/loading chat: " + response.errorBody());
+                    Toast.makeText(ChatActivity.this, "Không thể tạo/tải cuộc trò chuyện.", Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ChatResponse> call, Throwable t) {
-                Toast.makeText(ChatActivity.this, "Lỗi mạng khi tạo/tải chat: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                Log.e("ChatActivity", "Network error on create/load chat", t);
+                Toast.makeText(ChatActivity.this, "Lỗi mạng khi tạo/tải chat.", Toast.LENGTH_LONG).show();
             }
         });
     }
 
     private void loadMessages() {
-        if (currentChatId == -1) {
-            Log.w("ChatActivity", "No active chat ID to load messages.");
+        if (currentChatId == -1 || !isActivityVisible) { // Chỉ tải nếu có chat_id và activity đang chạy
             return;
         }
-        apiService.getMessages(currentChatId).enqueue(new Callback<MessageListResponse>() { // Assuming MessageListResponse model
+
+        apiService.getMessages(currentChatId).enqueue(new Callback<MessageListResponse>() {
             @Override
             public void onResponse(Call<MessageListResponse> call, Response<MessageListResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
-                    messageList.clear();
-                    if (response.body().messages != null) {
+                    if (response.body().messages != null && response.body().messages.size() > messageList.size()) {
+                        // Chỉ cập nhật nếu có tin nhắn mới
+                        messageList.clear();
                         messageList.addAll(response.body().messages);
+                        chatAdapter.notifyDataSetChanged();
+                        recyclerView.scrollToPosition(messageList.size() - 1);
                     }
-                    chatAdapter.notifyDataSetChanged();
-                    recyclerView.scrollToPosition(messageList.size() - 1); // Scroll to latest message
                 } else {
-                    Toast.makeText(ChatActivity.this, "Không thể tải tin nhắn: " + (response.body() != null ? response.body().message : response.message()), Toast.LENGTH_SHORT).show();
-                    Log.e("ChatActivity", "Error loading messages: " + response.errorBody());
+                    // Không hiển thị Toast lỗi ở đây để tránh làm phiền người dùng mỗi 5 giây
+                    Log.e("ChatActivity", "Lỗi khi tải tin nhắn tự động.");
                 }
             }
 
             @Override
             public void onFailure(Call<MessageListResponse> call, Throwable t) {
-                Toast.makeText(ChatActivity.this, "Lỗi mạng khi tải tin nhắn: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.e("ChatActivity", "Network error on load messages", t);
+                // Không hiển thị Toast lỗi ở đây
+                Log.e("ChatActivity", "Lỗi mạng khi tải tin nhắn tự động.", t);
             }
         });
     }
 
     private void sendMessage() {
         String messageText = messageEditText.getText().toString().trim();
-        if (messageText.isEmpty()) {
-            Toast.makeText(this, "Tin nhắn không được trống.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (currentChatId == -1) {
-            Toast.makeText(this, "Không có cuộc trò chuyện đang hoạt động.", Toast.LENGTH_SHORT).show();
+        if (messageText.isEmpty() || currentChatId == -1) {
             return;
         }
 
-        // Clear input field immediately
         messageEditText.setText("");
 
-        // Create a temporary ChatMessage to display immediately (optimistic update)
-        ChatMessage tempMessage = new ChatMessage(
-                0, // ID will be updated by server
-                userId,
-                sessionManager.getUsername(), // Assuming SessionManager provides username
-                false, // User is not admin
-                messageText,
-                "Đang gửi..." // Placeholder timestamp
-        );
-        messageList.add(tempMessage);
-        chatAdapter.notifyItemInserted(messageList.size() - 1);
-        recyclerView.scrollToPosition(messageList.size() - 1);
+        // Dừng làm mới tạm thời để tránh xung đột
+        handler.removeCallbacks(refreshMessagesRunnable);
 
-        // Send message via API
+        // Gửi tin nhắn qua API (is_admin luôn là false cho user)
         apiService.sendMessage(currentChatId, userId, false, messageText).enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success) {
-                    Log.d("ChatActivity", "Message sent successfully.");
-                    loadMessages(); // Reload messages to get actual ID and timestamp
+                    Log.d("ChatActivity", "Gửi tin nhắn thành công.");
+                    loadMessages(); // Tải lại tin nhắn ngay sau khi gửi
                 } else {
-                    Toast.makeText(ChatActivity.this, "Không thể gửi tin nhắn: " + (response.body() != null ? response.body().message : response.message()), Toast.LENGTH_SHORT).show();
-                    Log.e("ChatActivity", "Error sending message: " + response.errorBody());
-                    // Revert optimistic update or show error for the specific message
-                    // For simplicity, we just reload here. A more robust solution would update tempMessage status.
-                    loadMessages();
+                    Toast.makeText(ChatActivity.this, "Không thể gửi tin nhắn.", Toast.LENGTH_SHORT).show();
                 }
+                // Bắt đầu lại vòng lặp làm mới sau khi gửi xong
+                handler.postDelayed(refreshMessagesRunnable, REFRESH_INTERVAL);
             }
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
-                Toast.makeText(ChatActivity.this, "Lỗi mạng khi gửi tin nhắn: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.e("ChatActivity", "Network error on send message", t);
-                // Reload to potentially remove pending message or show error status
-                loadMessages();
+                Toast.makeText(ChatActivity.this, "Lỗi mạng khi gửi tin nhắn.", Toast.LENGTH_SHORT).show();
+                // Bắt đầu lại vòng lặp làm mới ngay cả khi gửi lỗi
+                handler.postDelayed(refreshMessagesRunnable, REFRESH_INTERVAL);
             }
         });
     }
