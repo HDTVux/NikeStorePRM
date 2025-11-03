@@ -40,7 +40,6 @@ public class CartActivity extends BaseActivity {
         super.onCreate(s);
         setContentView(R.layout.activity_cart);
 
-        // ... (code setup view và adapter giữ nguyên)
         rv = findViewById(R.id.rvCartItems);
         tvTotal = findViewById(R.id.tvCartTotal);
         btnCheckout = findViewById(R.id.btnCheckout);
@@ -62,6 +61,14 @@ public class CartActivity extends BaseActivity {
                     @Override public void onFailure(Call<ApiResponse> call, Throwable t) { Toast.makeText(CartActivity.this,"Network error",Toast.LENGTH_SHORT).show(); }
                 });
             }
+
+            // NEW: Implement onItemClicked to navigate to ProductDetailActivity
+            @Override
+            public void onItemClicked(CartItem item) {
+                Intent intent = new Intent(CartActivity.this, ProductDetailActivity.class);
+                intent.putExtra("product_id", item.product_id);
+                startActivity(intent);
+            }
         });
 
         rv.setLayoutManager(new LinearLayoutManager(this));
@@ -80,7 +87,6 @@ public class CartActivity extends BaseActivity {
 
     @Override
     protected int getNavigationMenuItemId() {
-        // Trả về ID của mục "Cart" trong menu
         return R.id.nav_cart;
     }
 
@@ -90,7 +96,6 @@ public class CartActivity extends BaseActivity {
         loadCart();
     }
     
-    // ... (các phương thức onActivityResult và loadCart giữ nguyên)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

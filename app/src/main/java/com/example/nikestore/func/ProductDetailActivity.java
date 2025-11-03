@@ -8,6 +8,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.RatingBar; // Import RatingBar
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -45,13 +46,15 @@ import retrofit2.Response;
 public class ProductDetailActivity extends BaseActivity {
     private ViewPager2 vpImages;
     private TabLayout indicator;
-    private TextView tvTitle, tvPrice, tvOriginalPrice, tvDescription, tvQuantity, tvTotalPrice; // NEW: tvOriginalPrice
+    private TextView tvTitle, tvPrice, tvOriginalPrice, tvDescription, tvQuantity, tvTotalPrice;
+    private RatingBar ratingBarProduct; // NEW: Declare RatingBar
+    private TextView tvRatingCount; // NEW: Declare tvRatingCount
     private RecyclerView rvSizes;
     private ImageButton btnBack, btnMinus, btnPlus;
     private Button btnAddToCart;
-    private ImageView ivFavoriteDetail; // New: Favorite icon
-    private SessionManager sessionManager; // New: SessionManager instance
-    private boolean isProductFavorited = false; // New: Track favorite status
+    private ImageView ivFavoriteDetail;
+    private SessionManager sessionManager;
+    private boolean isProductFavorited = false;
 
     private DecimalFormat money = new DecimalFormat("#,##0.##");
 
@@ -62,7 +65,6 @@ public class ProductDetailActivity extends BaseActivity {
     private int selectedVariantId = -1;
     private double activePrice = 0.0;
 
-    // --- Review Section ---
     private RecyclerView rvReviews;
     private TextView tvReviewsHeader, tvNoReviews;
     private ReviewAdapter reviewAdapter;
@@ -76,14 +78,13 @@ public class ProductDetailActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_product_detail);
 
-        sessionManager = SessionManager.getInstance(this); // Init SessionManager
+        sessionManager = SessionManager.getInstance(this);
 
-        // bind views
         vpImages = findViewById(R.id.vpImages);
         indicator = findViewById(R.id.indicator);
         tvTitle = findViewById(R.id.tvTitle);
         tvPrice = findViewById(R.id.tvPrice);
-        tvOriginalPrice = findViewById(R.id.tvOriginalPrice); // NEW: Bind tvOriginalPrice
+        tvOriginalPrice = findViewById(R.id.tvOriginalPrice);
         tvDescription = findViewById(R.id.tvDescription);
         tvQuantity = findViewById(R.id.tvQuantity);
         tvTotalPrice = findViewById(R.id.tvTotalPrice);
@@ -92,12 +93,13 @@ public class ProductDetailActivity extends BaseActivity {
         btnMinus = findViewById(R.id.btnMinus);
         btnPlus = findViewById(R.id.btnPlus);
         btnAddToCart = findViewById(R.id.btnAddToCart);
-        ivFavoriteDetail = findViewById(R.id.ivFavoriteDetail); // Bind favorite icon
+        ivFavoriteDetail = findViewById(R.id.ivFavoriteDetail);
         rvReviews = findViewById(R.id.rvReviews);
         tvReviewsHeader = findViewById(R.id.tvReviewsHeader);
         tvNoReviews = findViewById(R.id.tvNoReviews);
+        ratingBarProduct = findViewById(R.id.ratingBarProduct); // NEW: Initialize RatingBar
+        tvRatingCount = findViewById(R.id.tvRatingCount); // NEW: Initialize tvRatingCount
 
-        // listeners
         btnBack.setOnClickListener(v -> finish());
         btnMinus.setOnClickListener(v -> {
             if (quantity > 1) {
@@ -116,23 +118,20 @@ public class ProductDetailActivity extends BaseActivity {
             if (uid<=0) { Toast.makeText(this,"Vui lòng đăng nhập để thêm vào giỏ hàng",Toast.LENGTH_SHORT).show(); return; }
             Integer vid = selectedVariantId > 0 ? selectedVariantId : null;
 
-            // NEW: Sử dụng giá cuối cùng (final_price) khi thêm vào giỏ hàng nếu có khuyến mãi
-            double priceToAdd = (current != null && current.discount_percent > 0) ? current.final_price : current.price; // Use final price if discounted
+            double priceToAdd = (current != null && current.discount_percent > 0) ? current.final_price : current.price;
 
             CartItem newItem = new CartItem();
             if (current != null) {
                 newItem.setProduct_id(current.id);
                 newItem.setProduct_name(current.name);
                 newItem.setImage_url(current.image_url);
-                newItem.setPrice(priceToAdd); // Price reflects discount now
+                newItem.setPrice(priceToAdd);
                 newItem.setQuantity(quantity);
                 newItem.setVariant_id(vid);
                 newItem.setDiscount_percent(current.discount_percent);
                 newItem.setFinal_price(current.final_price);
-                // Variant size will be set by the SizeAdapter listener if a variant is selected
             }
 
-            // Call CartManager to add item to local cart and then sync with server
             CartManager.getInstance().addItemToCart(ProductDetailActivity.this, newItem, new CartManager.CartActionListener() {
                 @Override
                 public void onCartActionSuccess(String message) {
@@ -146,7 +145,6 @@ public class ProductDetailActivity extends BaseActivity {
             });
         });
 
-        // New: Favorite icon click listener
         ivFavoriteDetail.setOnClickListener(v -> toggleFavorite());
 
         tvReviewsHeader.setOnClickListener(v -> {
@@ -156,7 +154,6 @@ public class ProductDetailActivity extends BaseActivity {
             }
         });
 
-        // get product id
         int productId = getIntent().getIntExtra("product_id", 0);
         if (productId <= 0) {
             Toast.makeText(this, "Missing product", Toast.LENGTH_SHORT).show();
@@ -164,20 +161,18 @@ public class ProductDetailActivity extends BaseActivity {
             return;
         }
 
-        // init review adapter
         reviewAdapter = new ReviewAdapter();
         rvReviews.setAdapter(reviewAdapter);
         rvReviews.setLayoutManager(new LinearLayoutManager(this));
         rvReviews.setNestedScrollingEnabled(false);
 
-        // load
         loadProductDetail(productId);
         loadReviews(productId);
     }
 
     @Override
     protected int getNavigationMenuItemId() {
-        return 0; // ProductDetailActivity is not a top-level navigation destination
+        return 0;
     }
 
     private void loadProductDetail(int productId) {
@@ -201,7 +196,7 @@ public class ProductDetailActivity extends BaseActivity {
                             setupImageSlider(images);
                             variants = current.variants != null ? current.variants : new ArrayList<>();
                             setupSizes();
-                            checkFavoriteStatus(); // New: Check favorite status after loading product
+                            checkFavoriteStatus();
                         } else {
                             Log.e("PRODUCT_DETAIL", "unexpected response, code=" + response.code());
                             Toast.makeText(ProductDetailActivity.this, "Không lấy được chi tiết sản phẩm", Toast.LENGTH_SHORT).show();
@@ -219,7 +214,6 @@ public class ProductDetailActivity extends BaseActivity {
     private void checkFavoriteStatus() {
         int userId = sessionManager.getUserId();
         if (userId <= 0) {
-            // User not logged in, cannot be favorited
             ivFavoriteDetail.setImageResource(R.drawable.ic_favorite_border);
             isProductFavorited = false;
             return;
@@ -243,14 +237,14 @@ public class ProductDetailActivity extends BaseActivity {
                     updateFavoriteIcon();
                 } else {
                     Log.e("PRODUCT_DETAIL", "Failed to get wishlist: " + response.message());
-                    updateFavoriteIcon(); // Still update icon to default if API fails
+                    updateFavoriteIcon();
                 }
             }
 
             @Override
             public void onFailure(Call<WishlistResponse> call, Throwable t) {
                 Log.e("PRODUCT_DETAIL", "Network error checking favorite: " + t.getMessage());
-                updateFavoriteIcon(); // Still update icon to default on network error
+                updateFavoriteIcon();
             }
         });
     }
@@ -264,7 +258,6 @@ public class ProductDetailActivity extends BaseActivity {
         if (current == null) return;
 
         if (isProductFavorited) {
-            // Remove from favorite
             RetrofitClient.api().removeFavorite(userId, current.id).enqueue(new Callback<ApiResponse>() {
                 @Override
                 public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
@@ -285,7 +278,6 @@ public class ProductDetailActivity extends BaseActivity {
                 }
             });
         } else {
-            // Add to favorite
             RetrofitClient.api().addFavorite(userId, current.id).enqueue(new Callback<ApiResponse>() {
                 @Override
                 public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
@@ -326,7 +318,6 @@ public class ProductDetailActivity extends BaseActivity {
                         allReviews.addAll(response.body().reviews);
                     }
                 }
-                // always update view, even on failure or empty list
                 updateReviewsView();
             }
 
@@ -349,7 +340,6 @@ public class ProductDetailActivity extends BaseActivity {
             rvReviews.setVisibility(View.VISIBLE);
 
             if (isShowingAllReviews) {
-                // SỬA LỖI: Gửi một bản sao mới của danh sách đầy đủ
                 reviewAdapter.submitList(new ArrayList<>(allReviews));
                 tvReviewsHeader.setText("Reviews (Hide)");
                 tvReviewsHeader.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_up, 0);
@@ -379,7 +369,18 @@ public class ProductDetailActivity extends BaseActivity {
     private void setupInfoFromProduct(Product p) {
         tvTitle.setText(p.name != null ? p.name : "");
 
-        // NEW: Logic hiển thị giá gốc và giá khuyến mãi
+        // NEW: Hiển thị RatingBar và RatingCount
+        ratingBarProduct.setRating((float) p.avg_rating);
+        tvRatingCount.setText(String.format("(%d reviews)", p.rating_count));
+        // Ẩn nếu không có đánh giá hoặc rating_count = 0
+        if (p.rating_count <= 0) {
+            ratingBarProduct.setVisibility(View.GONE);
+            tvRatingCount.setVisibility(View.GONE);
+        } else {
+            ratingBarProduct.setVisibility(View.VISIBLE);
+            tvRatingCount.setVisibility(View.VISIBLE);
+        }
+
         if (p.discount_percent > 0) {
             tvOriginalPrice.setText("$" + money.format(p.price));
             tvOriginalPrice.setPaintFlags(tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
@@ -390,7 +391,7 @@ public class ProductDetailActivity extends BaseActivity {
         } else {
             tvOriginalPrice.setVisibility(View.GONE);
             tvPrice.setText("$" + money.format(p.price));
-            tvPrice.setTextColor(ContextCompat.getColor(this, R.color.white)); // Màu mặc định
+            tvPrice.setTextColor(ContextCompat.getColor(this, R.color.white));
             activePrice = p.price;
         }
 
@@ -403,7 +404,7 @@ public class ProductDetailActivity extends BaseActivity {
         SizeAdapter sizeAdapter = new SizeAdapter(variants);
         sizeAdapter.setOnSizeSelected((variantId, sizeLabel) -> {
             selectedVariantId = variantId;
-            double newPrice = current != null ? current.price : 0.0; // Mặc định là giá gốc của sản phẩm chính
+            double newPrice = current != null ? current.price : 0.0;
 
             for (ProductVariant v : variants) {
                 if (v != null && v.id == variantId) {
@@ -412,26 +413,15 @@ public class ProductDetailActivity extends BaseActivity {
                 }
             }
             
-            // Khi chọn size, giá hiển thị sẽ là giá của variant đó.
-            // Logic discount đã được áp dụng ở setupInfoFromProduct cho giá cơ bản của sản phẩm.
-            // Nếu có discount trên sản phẩm chính, thì final_price sẽ được sử dụng.
-            // Giá của variant sẽ không ảnh hưởng đến final_price đã tính toán ở cấp độ sản phẩm chính.
-            // Chúng ta cần đảm bảo activePrice luôn là giá sẽ được dùng để tính tổng cuối cùng.
-            // Ở đây, tôi sẽ đơn giản hóa bằng cách chỉ cập nhật activePrice dựa trên giá variant.
-            // Nếu bạn muốn khuyến mãi cũng áp dụng trên từng variant, logic sẽ phức tạp hơn.
-            // Để giữ logic hiện tại: giá variant thay đổi base price, sau đó discount nếu có sẽ áp dụng.
+            activePrice = newPrice;
 
-            activePrice = newPrice; // Update activePrice based on selected variant price
-
-            // NEW: Cập nhật lại hiển thị giá sau khi chọn variant
             if (current != null && current.discount_percent > 0) {
-                // Nếu sản phẩm có khuyến mãi, giá của variant không thay đổi giá hiển thị đã giảm
                 tvOriginalPrice.setText("$" + money.format(activePrice));
                 tvOriginalPrice.setPaintFlags(tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
                 tvOriginalPrice.setVisibility(View.VISIBLE);
-                tvPrice.setText("$" + money.format(current.final_price)); // Vẫn hiển thị final_price của sản phẩm chính
+                tvPrice.setText("$" + money.format(current.final_price));
                 tvPrice.setTextColor(ContextCompat.getColor(this, R.color.red));
-                activePrice = current.final_price; // activePrice vẫn là giá cuối cùng đã giảm
+                activePrice = current.final_price;
             } else {
                 tvOriginalPrice.setVisibility(View.GONE);
                 tvPrice.setText("$" + money.format(activePrice));

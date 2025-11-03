@@ -11,6 +11,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout; // Import SwipeRefreshLayout
 
 import com.example.nikestore.R;
 import com.example.nikestore.model.OrdersResponse;
@@ -26,6 +27,7 @@ import retrofit2.Response;
 public class OrderHistoryActivity extends BaseActivity {
     private RecyclerView rvOrders;
     private OrderHistoryAdapter adapter;
+    private SwipeRefreshLayout swipeRefreshLayout; // NEW: Declare SwipeRefreshLayout
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +37,7 @@ public class OrderHistoryActivity extends BaseActivity {
         rvOrders = findViewById(R.id.rvOrders);
         adapter = new OrderHistoryAdapter(new ArrayList<>()); 
         rvOrders.setAdapter(adapter);
-        rvOrders.setLayoutManager(new LinearLayoutManager(this));
+        rvOrders.setLayoutManager(new LinearLayoutManager(this)); // ĐÃ SỬA LỖI TẠI ĐÂY
 
         adapter.setOnItemClickListener(order -> {
             Intent i = new Intent(this, OrderDetailActivity.class);
@@ -44,14 +46,26 @@ public class OrderHistoryActivity extends BaseActivity {
         });
 
         int userId = SessionManager.getInstance(this).getUserId();
+
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setOnRefreshListener(() -> {
+                loadOrders(userId);
+            });
+        }
+
         loadOrders(userId);
     }
 
     @Override
     protected int getNavigationMenuItemId() {
-        return R.id.nav_orders; // Trả về ID của mục "Orders" trong menu
+        return R.id.nav_orders;
     }
     private void loadOrders(int userId) {
+        if (swipeRefreshLayout != null && !swipeRefreshLayout.isRefreshing()) {
+            swipeRefreshLayout.setRefreshing(true);
+        }
+
         RetrofitClient.api().getUserOrders("get_user_orders", userId)
                 .enqueue(new Callback<OrdersResponse>() {
                     @Override
@@ -61,11 +75,17 @@ public class OrderHistoryActivity extends BaseActivity {
                         } else {
                             Toast.makeText(OrderHistoryActivity.this, "Không có đơn hàng nào", Toast.LENGTH_SHORT).show();
                         }
+                        if (swipeRefreshLayout != null) {
+                            swipeRefreshLayout.setRefreshing(false);
+                        }
                     }
 
                     @Override
                     public void onFailure(Call<OrdersResponse> call, Throwable t) {
                         Toast.makeText(OrderHistoryActivity.this, "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                        if (swipeRefreshLayout != null) {
+                            swipeRefreshLayout.setRefreshing(false);
+                        }
                     }
                 });
     }

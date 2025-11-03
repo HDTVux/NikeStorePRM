@@ -15,4 +15,8 @@
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
 
+    <!-- NEW: Colors for RatingBar and Rating Count -->
+    <color name="yellow">#FFC107</color> <!-- Màu vàng tiêu chuẩn cho sao -->
+    <color name="gray_light">#AAAAAA</color> <!-- Màu xám nhạt cho text số lượng review -->
+
 </resources>

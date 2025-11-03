@@ -84,6 +84,12 @@ public class CheckoutActivity extends AppCompatActivity {
             public void onRemove(CartItem item) {
                 // Similar to onQtyChanged, removal logic isn't directly handled here.
             }
+
+            @Override
+            public void onItemClicked(CartItem item) {
+                // NEW: Handle item click. In CheckoutActivity, we just show a toast as navigation is not intended.
+                Toast.makeText(CheckoutActivity.this, "Không thể xem chi tiết sản phẩm khi thanh toán", Toast.LENGTH_SHORT).show();
+            }
         });
         rvCart.setAdapter(cartAdapter);
         rvCart.setLayoutManager(new LinearLayoutManager(this));
