@@ -1,0 +1,10 @@
+package com.vux.store.model;
+
+import java.util.List;
+
+public class CartResponse {
+    public boolean success;
+    public List<CartItem> items;
+    public double total;
+    public int count;
+}

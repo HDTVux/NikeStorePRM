@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nikestore"
+    namespace = "com.vux.store"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.nikestore"
+        applicationId = "com.vux.store"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

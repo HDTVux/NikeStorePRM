@@ -8,9 +8,8 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logoapp"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.NikeStore"
         android:usesCleartextTraffic="true">
@@ -77,14 +76,14 @@
             android:name=".MainActivity"
             android:exported="true" />
         <activity
-            android:name="com.example.nikestore.func.ReviewOrderActivity"
+            android:name="com.vux.store.func.ReviewOrderActivity"
             android:exported="false" />
         <activity
-            android:name="com.example.nikestore.func.ProfileActivity"
+            android:name="com.vux.store.func.ProfileActivity"
             android:exported="false" />
         <!-- Declare WishlistActivity -->
         <activity
-            android:name="com.example.nikestore.func.WishlistActivity"
+            android:name="com.vux.store.func.WishlistActivity"
             android:exported="false" />
 
         <!-- Declare VnPayWebViewActivity -->
@@ -101,7 +100,7 @@
 
         <!-- NEW: Declare ChatActivity -->
         <activity
-            android:name="com.example.nikestore.func.ChatActivity"
+            android:name="com.vux.store.func.ChatActivity"
             android:exported="false" />
 
     </application>
